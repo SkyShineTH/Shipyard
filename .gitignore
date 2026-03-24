@@ -1,0 +1,32 @@
+# Environment variables - NEVER commit these
+.env
+*.env
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.out
+*.test
+vendor/
+
+# Node / React (for future frontend service)
+node_modules/
+dist/
+build/
+
+# IDE & editor configs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
