@@ -157,3 +157,4 @@ shipyard/
 - [x] Repo structure confirmed
 - [x] Timeline confirmed
 - [x] Day 1: todo-service — boilerplate + Dockerfile + docker-compose
+- [x] Day 2: auth-service — JWT, boilerplate (model/db/middleware/handler), Dockerfile, docker-compose

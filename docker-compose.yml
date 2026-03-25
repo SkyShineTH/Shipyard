@@ -27,5 +27,18 @@ services:
       postgres:
         condition: service_healthy
 
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: shipyard-auth-service
+    env_file:
+      - .env
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:
