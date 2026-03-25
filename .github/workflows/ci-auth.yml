@@ -7,6 +7,7 @@ on:
     paths:
       - 'services/auth-service/**'
       - 'gitops/charts/auth-service/**'
+  workflow_dispatch: {}
 
 concurrency:
   group: shipyard-auth-service-main
@@ -66,8 +67,29 @@ jobs:
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
           sed -i "s/tag: .*/tag: \"${SHORT_SHA}\"/" gitops/charts/auth-service/values.yaml
 
-      - name: Commit and push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore(auth-service): update image tag to ${GITHUB_SHA::7} [skip ci]"
-          file_pattern: 'gitops/charts/auth-service/values.yaml'
+      - name: Commit and push chart tag update (with retry)
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add gitops/charts/auth-service/values.yaml
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(auth-service): update image tag to ${GITHUB_SHA::7} [skip ci]"
+
+          for i in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main || (git rebase --abort && false)
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push failed (attempt $i); retrying..."
+            sleep $((i * 2))
+          done
+
+          echo "Push failed after retries."
+          exit 1
