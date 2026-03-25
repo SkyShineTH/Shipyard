@@ -43,11 +43,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute lowercase GHCR owner
+        shell: bash
+        run: |
+          echo "GHCR_OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ toLower(github.repository_owner) }}/shipyard-auth-service
+          images: ghcr.io/${{ env.GHCR_OWNER_LC }}/shipyard-auth-service
           tags: |
             type=sha,format=short
             type=raw,value=latest
