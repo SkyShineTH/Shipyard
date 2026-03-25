@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shipyard-todo-service
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/SkyShineTH/Shipyard'
+    targetRevision: main
+    path: gitops/charts/todo-service
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: shipyard
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
