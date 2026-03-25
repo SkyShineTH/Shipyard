@@ -8,7 +8,7 @@ image:
   repository: ghcr.io/skyshineth/shipyard-auth-service
   pullPolicy: IfNotPresent
   # Overwritten by GitHub Actions CI on each push
-  tag: "sha-e91cac5"
+  tag: "latest"
 
 imagePullSecrets: []
 # Example:
