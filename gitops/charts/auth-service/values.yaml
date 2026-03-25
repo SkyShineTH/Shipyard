@@ -6,7 +6,7 @@ image:
   repository: ghcr.io/skyshineth/shipyard-auth-service
   pullPolicy: IfNotPresent
   # Overwritten by GitHub Actions CI on each push
-  tag: "sha-3c56e78"
+  tag: "latest"
 
 service:
   type: ClusterIP
