@@ -7,7 +7,7 @@ image:
   repository: ghcr.io/skyshineth/shipyard-todo-service
   pullPolicy: IfNotPresent
   # Overwritten by GitHub Actions CI on each push
-  tag: "4b2b9d5"
+  tag: "latest"
 
 service:
   type: ClusterIP
