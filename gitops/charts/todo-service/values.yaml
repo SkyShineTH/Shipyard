@@ -9,6 +9,26 @@ image:
   # Overwritten by GitHub Actions CI on each push
   tag: "a43b340"
 
+serviceAccount:
+  create: true
+  # If empty and create=true, defaults to release name.
+  name: ""
+
+# Prevent automatically mounting a Kubernetes API token into the pod.
+automountServiceAccountToken: false
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
 service:
   type: ClusterIP
   port: 8080
@@ -20,6 +40,11 @@ ingress:
   host: todo.shipyard.local
   path: /
   pathType: Prefix
+  tls:
+    enabled: false
+    # Example:
+    # secretName: todo-tls
+    secretName: ""
 
 resources:
   requests:

@@ -33,3 +33,14 @@ Selector labels — used by Deployment and Service selectors.
 app.kubernetes.io/name: {{ include "todo-service.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+ServiceAccount name.
+*/}}
+{{- define "todo-service.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create -}}
+{{- default (include "todo-service.fullname" .) .Values.serviceAccount.name -}}
+{{- else -}}
+{{- default "default" .Values.serviceAccount.name -}}
+{{- end -}}
+{{- end }}
