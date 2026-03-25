@@ -9,7 +9,7 @@ image:
   repository: ghcr.io/SkyShineTH/shipyard-todo-service
   pullPolicy: IfNotPresent
   # Overwritten by GitHub Actions CI on each push
-  tag: "1396b25"
+  tag: "4bed743"
 
 imagePullSecrets: []
 # Example:
