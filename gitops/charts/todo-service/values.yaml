@@ -1,0 +1,54 @@
+# Default values for todo-service.
+# Override with: helm install todo-service ./gitops/charts/todo-service -f my-values.yaml
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/SkyShineTH/shipyard-todo-service
+  pullPolicy: IfNotPresent
+  # Overwritten by GitHub Actions CI on each push
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: todo.shipyard.local
+  path: /
+  pathType: Prefix
+
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "200m"
+    memory: "128Mi"
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# Database connection — injected into the pod from a Kubernetes Secret.
+# Create the secret before deploying:
+#   kubectl create secret generic todo-service-secret -n shipyard \
+#     --from-literal=DB_HOST=postgres \
+#     --from-literal=DB_USER=shipyard \
+#     --from-literal=DB_PASSWORD=<your-password> \
+#     --from-literal=DB_NAME=shipyard \
+#     --from-literal=DB_PORT=5432 \
+#     --from-literal=DB_SSLMODE=disable
+secret:
+  name: todo-service-secret
+
+env:
+  PORT: "8080"
+
+namespace: shipyard

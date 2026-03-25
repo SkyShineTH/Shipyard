@@ -1,0 +1,6 @@
+apiVersion: v2
+name: todo-service
+description: Shipyard todo-service — Go/Gin REST API backed by PostgreSQL
+type: application
+version: 0.1.0
+appVersion: "latest"

@@ -158,3 +158,4 @@ shipyard/
 - [x] Timeline confirmed
 - [x] Day 1: todo-service — boilerplate + Dockerfile + docker-compose
 - [x] Day 2: auth-service — JWT, boilerplate (model/db/middleware/handler), Dockerfile, docker-compose
+- [x] Day 3: Helm charts — todo-service + auth-service (Chart.yaml, values.yaml, deployment/service/ingress templates)
