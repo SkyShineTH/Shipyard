@@ -3,10 +3,17 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/skyshineth/shipyard-auth-service
+  # IMPORTANT: must match the GHCR path your CI pushes to.
+  # If your CI uses `github.repository_owner` (e.g. "SkyShineTH"), keep it identical here.
+  repository: ghcr.io/SkyShineTH/shipyard-auth-service
   pullPolicy: IfNotPresent
   # Overwritten by GitHub Actions CI on each push
   tag: "ced7b64"
+
+imagePullSecrets: []
+# Example:
+# imagePullSecrets:
+#   - name: ghcr-pull
 
 serviceAccount:
   create: true
