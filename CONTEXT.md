@@ -160,3 +160,4 @@ shipyard/
 - [x] Day 2: auth-service — JWT, boilerplate (model/db/middleware/handler), Dockerfile, docker-compose
 - [x] Day 3: Helm charts — todo-service + auth-service (Chart.yaml, values.yaml, deployment/service/ingress templates)
 - [x] Day 4: GitHub Actions CI: build → push GHCR → update image tag (todo + auth)
+- [x] Day 5: kind cluster, ArgoCD install, Application manifests, GitOps loop test
