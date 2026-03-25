@@ -6,7 +6,7 @@ image:
   repository: ghcr.io/skyshineth/shipyard-auth-service
   pullPolicy: IfNotPresent
   # Overwritten by GitHub Actions CI on each push
-  tag: "0f70e19"
+  tag: "ced7b64"
 
 serviceAccount:
   create: true
