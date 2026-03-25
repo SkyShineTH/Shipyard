@@ -4,8 +4,8 @@ replicaCount: 1
 
 image:
   # IMPORTANT: must match the GHCR path your CI pushes to.
-  # If your CI uses `github.repository_owner` (e.g. "SkyShineTH"), keep it identical here.
-  repository: ghcr.io/SkyShineTH/shipyard-auth-service
+  # Repository names must be lowercase (otherwise you can hit InvalidImageName in Kubernetes).
+  repository: ghcr.io/skyshineth/shipyard-auth-service
   pullPolicy: IfNotPresent
   # Overwritten by GitHub Actions CI on each push
   tag: "4bed743"
