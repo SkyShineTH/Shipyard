@@ -54,7 +54,7 @@ jobs:
         with:
           images: ghcr.io/${{ env.GHCR_OWNER_LC }}/shipyard-auth-service
           tags: |
-            type=sha,format=short,prefix=
+            type=sha,format=short
             type=raw,value=latest
 
       - name: Build and push Docker image
@@ -70,7 +70,7 @@ jobs:
       - name: Update Helm Chart Image Tag
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          sed -i "s/tag: .*/tag: \"${SHORT_SHA}\"/" gitops/charts/auth-service/values.yaml
+          sed -i "s/tag: .*/tag: \"sha-${SHORT_SHA}\"/" gitops/charts/auth-service/values.yaml
 
       - name: Commit and push chart tag update (with retry)
         run: |
