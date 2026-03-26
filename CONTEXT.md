@@ -162,3 +162,4 @@ shipyard/
 - [x] Day 4: GitHub Actions CI: build → push GHCR → update image tag (todo + auth)
 - [x] Day 5: kind cluster, ArgoCD install, Application manifests, GitOps loop test
 - [x] Day 6: React frontend — pages (home, todos, login, register), API client, Vite dev proxy, nginx Dockerfile, docker-compose `frontend` service
+- [x] Day 7: Helm chart `gitops/charts/frontend` (Deployment, Service, Ingress, ConfigMap nginx for K8s upstreams), GitHub Actions `ci-frontend.yml`, ArgoCD `frontend-app.yaml`

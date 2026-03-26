@@ -1,0 +1,68 @@
+# Default values for frontend.
+# Override with: helm install frontend ./gitops/charts/frontend -f my-values.yaml
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/skyshineth/shipyard-frontend
+  pullPolicy: IfNotPresent
+  # Overwritten by GitHub Actions CI on each push
+  tag: "sha-0000000"
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+
+automountServiceAccountToken: false
+
+# Official nginx image runs as root; avoid runAsNonRoot so the master process can bind and manage workers.
+podSecurityContext: {}
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: shipyard.local
+  path: /
+  pathType: Prefix
+  tls:
+    enabled: false
+    secretName: ""
+
+resources:
+  requests:
+    cpu: "25m"
+    memory: "32Mi"
+  limits:
+    cpu: "100m"
+    memory: "64Mi"
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# Kubernetes Service names (same namespace) for nginx proxy_pass.
+upstream:
+  auth:
+    host: auth-service
+    port: 8081
+  todo:
+    host: todo-service
+    port: 8080
+
+namespace: shipyard
