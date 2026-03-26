@@ -57,12 +57,13 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
 
 # Kubernetes Service names (same namespace) for nginx proxy_pass.
+# Must match Helm release / Service names (Argo CD defaults release name to Application name).
 upstream:
   auth:
-    host: auth-service
+    host: shipyard-auth-service
     port: 8081
   todo:
-    host: todo-service
+    host: shipyard-todo-service
     port: 8080
 
 namespace: shipyard
