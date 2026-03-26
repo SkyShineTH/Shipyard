@@ -161,3 +161,4 @@ shipyard/
 - [x] Day 3: Helm charts — todo-service + auth-service (Chart.yaml, values.yaml, deployment/service/ingress templates)
 - [x] Day 4: GitHub Actions CI: build → push GHCR → update image tag (todo + auth)
 - [x] Day 5: kind cluster, ArgoCD install, Application manifests, GitOps loop test
+- [x] Day 6: React frontend — pages (home, todos, login, register), API client, Vite dev proxy, nginx Dockerfile, docker-compose `frontend` service

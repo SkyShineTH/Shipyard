@@ -24,6 +24,14 @@ func main() {
 	}
 
 	router := gin.Default()
+	if err := router.SetTrustedProxies([]string{
+		"127.0.0.1",
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+	}); err != nil {
+		log.Fatalf("set trusted proxies: %v", err)
+	}
 	authHandler := handler.NewAuthHandler(database)
 
 	router.GET("/health", func(c *gin.Context) {

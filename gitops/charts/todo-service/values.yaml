@@ -72,14 +72,15 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
 
 # Database connection — injected into the pod from a Kubernetes Secret.
-# Create the secret before deploying:
+# Create the secret before deploying (JWT_SECRET must match auth-service):
 #   kubectl create secret generic todo-service-secret -n shipyard \
 #     --from-literal=DB_HOST=postgres \
 #     --from-literal=DB_USER=shipyard \
 #     --from-literal=DB_PASSWORD=<your-password> \
 #     --from-literal=DB_NAME=shipyard \
 #     --from-literal=DB_PORT=5432 \
-#     --from-literal=DB_SSLMODE=disable
+#     --from-literal=DB_SSLMODE=disable \
+#     --from-literal=JWT_SECRET=<same-as-auth-service>
 secret:
   name: todo-service-secret
 

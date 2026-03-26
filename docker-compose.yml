@@ -21,6 +21,18 @@ services:
     container_name: shipyard-todo-service
     env_file:
       - .env
+    environment:
+      # Root .env often has a single PORT=8080; force per-service ports for Compose.
+      PORT: "8080"
+      # Must match auth-service so JWTs validate here.
+      JWT_SECRET: ${JWT_SECRET}
+      # Keep in sync with postgres (POSTGRES_*). Stale Docker volumes still need matching password or `down -v`.
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_SSLMODE: disable
     ports:
       - "8080:8080"
     depends_on:
@@ -34,11 +46,30 @@ services:
     container_name: shipyard-auth-service
     env_file:
       - .env
+    environment:
+      PORT: "8081"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_SSLMODE: disable
     ports:
       - "8081:8081"
     depends_on:
       postgres:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: shipyard-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - todo-service
+      - auth-service
 
 volumes:
   postgres_data:

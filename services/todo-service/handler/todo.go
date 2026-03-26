@@ -26,9 +26,24 @@ func NewTodoHandler(database *gorm.DB) *TodoHandler {
 	return &TodoHandler{DB: database}
 }
 
+func userID(c *gin.Context) (uint, bool) {
+	v, ok := c.Get("user_id")
+	if !ok {
+		return 0, false
+	}
+	id, ok := v.(uint)
+	return id, ok
+}
+
 func (h *TodoHandler) GetTodos(c *gin.Context) {
+	uid, ok := userID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing user"})
+		return
+	}
+
 	var todos []model.Todo
-	if err := h.DB.Order("id asc").Find(&todos).Error; err != nil {
+	if err := h.DB.Where("user_id = ?", uid).Order("id asc").Find(&todos).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch todos"})
 		return
 	}
@@ -37,13 +52,19 @@ func (h *TodoHandler) GetTodos(c *gin.Context) {
 }
 
 func (h *TodoHandler) CreateTodo(c *gin.Context) {
+	uid, ok := userID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing user"})
+		return
+	}
+
 	var payload createTodoRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "title is required"})
 		return
 	}
 
-	todo := model.Todo{Title: payload.Title, Completed: false}
+	todo := model.Todo{UserID: uid, Title: payload.Title, Completed: false}
 	if err := h.DB.Create(&todo).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create todo"})
 		return
@@ -53,6 +74,12 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 }
 
 func (h *TodoHandler) UpdateTodo(c *gin.Context) {
+	uid, ok := userID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing user"})
+		return
+	}
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid todo id"})
@@ -60,7 +87,7 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 	}
 
 	var todo model.Todo
-	if err := h.DB.First(&todo, id).Error; err != nil {
+	if err := h.DB.Where("id = ? AND user_id = ?", id, uid).First(&todo).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "todo not found"})
 			return
@@ -92,13 +119,19 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 }
 
 func (h *TodoHandler) DeleteTodo(c *gin.Context) {
+	uid, ok := userID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing user"})
+		return
+	}
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid todo id"})
 		return
 	}
 
-	result := h.DB.Delete(&model.Todo{}, id)
+	result := h.DB.Where("id = ? AND user_id = ?", id, uid).Delete(&model.Todo{})
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete todo"})
 		return

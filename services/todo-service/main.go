@@ -7,6 +7,7 @@ import (
 
 	"github.com/SkyShineTH/shipyard/todo-service/db"
 	"github.com/SkyShineTH/shipyard/todo-service/handler"
+	"github.com/SkyShineTH/shipyard/todo-service/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -24,6 +25,14 @@ func main() {
 	}
 
 	router := gin.Default()
+	if err := router.SetTrustedProxies([]string{
+		"127.0.0.1",
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+	}); err != nil {
+		log.Fatalf("set trusted proxies: %v", err)
+	}
 	todoHandler := handler.NewTodoHandler(database)
 
 	router.GET("/health", func(c *gin.Context) {
@@ -31,6 +40,7 @@ func main() {
 	})
 
 	api := router.Group("/api/v1")
+	api.Use(middleware.RequireAuth())
 	{
 		api.GET("/todos", todoHandler.GetTodos)
 		api.POST("/todos", todoHandler.CreateTodo)
