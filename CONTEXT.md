@@ -86,6 +86,7 @@ shipyard/
 │   │   ├── auth-service/
 │   │   └── frontend/
 │   └── argocd/
+│       ├── argo-rollouts-app.yaml
 │       ├── todo-app.yaml
 │       ├── auth-app.yaml
 │       └── frontend-app.yaml
@@ -120,6 +121,8 @@ shipyard/
 | Day 8 | DigitalOcean DOKS cluster + deploy ทั้ง 3 services |
 | Day 9 | Argo Rollouts: canary deployment (20% → 50% → 100%) |
 | Day 10 | README, architecture diagram, live demo URL, GitHub badges |
+
+**ลำดับที่ทำจริง (ยืดหยุ่น):** ทำ **Day 9 → Day 10** บน **kind** ก่อนได้ — Rollouts ไม่บังคับ DOKS; **Day 10** ทำ README/diagram/badges ก่อน แล้วค่อยเติม **live demo URL** หลัง **Day 8** เมื่อมี DOKS
 
 ---
 
@@ -163,3 +166,4 @@ shipyard/
 - [x] Day 5: kind cluster, ArgoCD install, Application manifests, GitOps loop test
 - [x] Day 6: React frontend — pages (home, todos, login, register), API client, Vite dev proxy, nginx Dockerfile, docker-compose `frontend` service
 - [x] Day 7: Helm chart `gitops/charts/frontend` (Deployment, Service, Ingress, ConfigMap nginx for K8s upstreams), GitHub Actions `ci-frontend.yml`, ArgoCD `frontend-app.yaml`
+- [x] Day 9: Argo Rollouts — `gitops/argocd/argo-rollouts-app.yaml`; `todo-service` chart uses `Rollout` + canary (20% → pause → 50% → 100%); README badges + diagram + rollouts usage

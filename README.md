@@ -1,16 +1,49 @@
 # Shipyard
 
-A full-stack **GitOps** portfolio project: **React + Vite** frontend, **Go** microservices + **PostgreSQL**, deployed to Kubernetes with **Helm** and **ArgoCD**. CI builds images, pushes to **GHCR**, and bumps chart image tags for the GitOps loop.
+A full-stack **GitOps** portfolio project: **React + Vite** frontend, **Go** microservices + **PostgreSQL**, deployed to Kubernetes with **Helm** and **ArgoCD**. CI builds images, pushes to **GHCR**, and bumps chart image tags for the GitOps loop. **`todo-service`** uses **Argo Rollouts** for canary-style progressive delivery (20% → manual promote → 50% → 100%).
+
+[![CI todo-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-todo.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-todo.yml)
+[![CI auth-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml)
+[![CI frontend](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml)
 
 ## Architecture (high level)
 
-- **`todo-service`** (Go/Gin + GORM) — REST API for todos (JWT-protected)
+- **`todo-service`** (Go/Gin + GORM) — REST API for todos (JWT-protected); **Rollout** (canary) in Kubernetes
 - **`auth-service`** (Go/Gin + JWT + bcrypt) — register / login
 - **`frontend`** (React + Vite, nginx in production) — UI; nginx reverse-proxies `/api/v1/*` to the Go services
 - **PostgreSQL** — persistence
 - **Helm charts** — `gitops/charts/{todo-service,auth-service,frontend}`
-- **ArgoCD Applications** — `gitops/argocd/*.yaml` (GitOps loop)
+- **ArgoCD Applications** — `gitops/argocd/*.yaml` (GitOps loop) + **`argo-rollouts`** controller
 - **GitHub Actions** — `ci-todo.yml`, `ci-auth.yml`, `ci-frontend.yml`: build → push GHCR → update `image.tag` in chart `values.yaml`
+
+```mermaid
+flowchart LR
+  subgraph ci [GitHub Actions]
+    build[Build and push GHCR]
+    bump[Bump chart image.tag]
+  end
+  subgraph gitops [GitOps]
+    acd[Argo CD]
+    roll[Argo Rollouts]
+  end
+  subgraph k8s [Kubernetes shipyard]
+    fe[frontend]
+    auth[auth-service]
+    todo[todo-service Rollout]
+    db[(PostgreSQL)]
+  end
+  build --> bump
+  bump --> acd
+  acd --> fe
+  acd --> auth
+  acd --> todo
+  acd --> roll
+  roll -.-> todo
+  fe --> auth
+  fe --> todo
+  auth --> db
+  todo --> db
+```
 
 ## Repo structure
 
@@ -25,7 +58,8 @@ gitops/
     auth-service/
     frontend/               # ConfigMap nginx for K8s upstreams; Deployment + Service + Ingress
   argocd/
-    todo-app.yaml           # Application: shipyard-todo-service
+    argo-rollouts-app.yaml  # Application: argo-rollouts (controller + CRDs)
+    todo-app.yaml           # Application: shipyard-todo-service (Rollout)
     auth-app.yaml           # Application: shipyard-auth-service
     frontend-app.yaml       # Application: shipyard-frontend
 .github/workflows/
@@ -42,7 +76,7 @@ CONTEXT.md                  # extended project notes & timeline
 | Database     | PostgreSQL 16                       |
 | Images       | Docker (multi-stage)                |
 | Cluster      | kind (local), DOKS (planned)        |
-| GitOps       | Helm + ArgoCD                       |
+| GitOps       | Helm + ArgoCD + Argo Rollouts (todo canary) |
 | Registry     | GHCR                                |
 
 ## Services & endpoints
@@ -102,9 +136,11 @@ npm run dev
 
 ### Deploy via ArgoCD Applications
 
-Apply the Applications (adjust `repoURL` in the manifests if you fork):
+Apply the Applications (adjust `repoURL` in the manifests if you fork). **Sync `argo-rollouts` before `shipyard-todo-service`** so the `Rollout` CRD exists (or let Argo retry the todo app after the controller is healthy).
 
 ```bash
+kubectl apply -f gitops/argocd/argo-rollouts-app.yaml
+kubectl -n argocd wait --for=jsonpath='{.status.health.status}'=Healthy application/argo-rollouts --timeout=300s
 kubectl apply -f gitops/argocd/
 ```
 
@@ -112,8 +148,21 @@ Then watch:
 
 ```bash
 kubectl -n argocd get applications.argoproj.io
-kubectl -n shipyard get deploy,svc,pods
+kubectl -n shipyard get rollout,deploy,svc,pods
 ```
+
+### Argo Rollouts (todo-service canary)
+
+`gitops/charts/todo-service` deploys a **Rollout** (not a Deployment) with steps: **20% → pause (manual promote) → 50% → 100%**. Without a service mesh, weights are approximated via replica counts; the chart defaults to **5** replicas.
+
+Install the [kubectl argo rollouts plugin](https://argo-rollouts.readthedocs.io/en/stable/features/kubectl-plugin/), then after a new image tag syncs:
+
+```bash
+kubectl argo rollouts get rollout shipyard-todo-service -n shipyard --watch
+kubectl argo rollouts promote shipyard-todo-service -n shipyard
+```
+
+Use `kubectl argo rollouts undo shipyard-todo-service -n shipyard` if you need to abort.
 
 ### Required secrets (namespace `shipyard`)
 
@@ -178,7 +227,7 @@ ArgoCD picks up the Git change and syncs the cluster.
 
 ```bash
 kubectl -n shipyard get deploy shipyard-auth-service -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
-kubectl -n shipyard get deploy shipyard-todo-service -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
+kubectl -n shipyard get rollout shipyard-todo-service -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
 kubectl -n shipyard get deploy shipyard-frontend -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
 ```
 

@@ -1,5 +1,5 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: {{ include "todo-service.fullname" . }}
   namespace: {{ .Values.namespace }}
@@ -7,6 +7,7 @@ metadata:
     {{- include "todo-service.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       {{- include "todo-service.selectorLabels" . | nindent 6 }}
@@ -39,7 +40,6 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          # Non-sensitive env vars set directly; secrets pulled from a Kubernetes Secret.
           env:
             - name: PORT
               value: {{ .Values.env.PORT | quote }}
@@ -60,3 +60,12 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+  strategy:
+    canary:
+      # Without a service mesh / ingress router, weights are approximated via replica counts.
+      # Use replicaCount >= 5 so 20% maps to at least one canary pod.
+      steps:
+        - setWeight: 20
+        - pause: {}
+        - setWeight: 50
+        - setWeight: 100
