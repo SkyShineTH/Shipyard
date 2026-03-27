@@ -6,11 +6,14 @@ A full-stack **GitOps** portfolio project: **React + Vite** frontend, **Go** mic
 [![CI auth-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml)
 [![CI frontend](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml)
 
-## Live demo (DOKS)
+## Live demo
 
-**HTTP (no custom domain):** [http://163.47.11.209/](http://163.47.11.209/) — frontend ผ่าน DigitalOcean Load Balancer ของ `shipyard-frontend`. ถ้า LB ถูกสร้างใหม่ IP อาจเปลี่ยน: รัน `kubectl -n shipyard get svc shipyard-frontend` แล้วอัปเดตลิงก์ใน README ให้ตรง **EXTERNAL-IP**
+**DigitalOcean Kubernetes (DOKS)** ถูก **destroy** แล้วเพื่อลดค่าใช้จ่ายหลังใช้เรียนรู้ — **ไม่มี URL สาธารณะของ full-stack app บน cloud ในตอนนี้**
 
-**HTTPS:** ทำได้แต่ **ยุ่งกว่า** — Let’s Encrypt ต้องมี **โดเมน + DNS** ชี้มาที่ cluster แล้วตั้ง **Ingress + cert-manager** (หรือ TLS บน LB ฝั่ง DO). แบบ **HTTPS กับแค่ IP** ไม่ใช่มาตรฐาน (มักเป็น self-signed เบราว์เซอร์เตือน) เลยสำหรับ portfolio ใช้ **HTTP + IP** แบบด้านบนก่อนได้
+- **รันเต็ม stack ในเครื่อง:** [Local development (Docker Compose)](#local-development-docker-compose) หรือ [Kubernetes (kind) + ArgoCD](#kubernetes-kind--argocd-gitops)
+- **โปรเจกต์ / portfolio (static):** [skyshine.online](https://skyshine.online) — GitHub Pages (ไม่ใช่ cluster นี้)
+
+ถ้าสร้าง DOKS ใหม่และติดตั้งตาม [DigitalOcean DOKS](#digitalocean-doks) ได้ **EXTERNAL-IP** จาก `kubectl -n shipyard get svc shipyard-frontend` แล้วใช้ `http://<EXTERNAL-IP>/` เป็น demo ชั่วคราวได้อีกครั้ง (HTTPS ต้องมีโดเมน + Ingress/cert-manager หรือ TLS บน LB ตามคู่มือ DO)
 
 ## Architecture (high level)
 
@@ -81,7 +84,7 @@ CONTEXT.md                  # extended project notes & timeline
 | Backend      | Go, Gin, GORM                       |
 | Database     | PostgreSQL 16                       |
 | Images       | Docker (multi-stage)                |
-| Cluster      | kind (local), DOKS (see [DOKS](#digitalocean-doks)) |
+| Cluster      | kind (local); DOKS เป็นทางเลือก — ดู [DOKS](#digitalocean-doks) (cluster สาธารณะเคยใช้แล้วถูก destroy) |
 | GitOps       | Helm + ArgoCD + Argo Rollouts (todo canary) |
 | Registry     | GHCR                                |
 
@@ -211,7 +214,9 @@ curl http://127.0.0.1:8080/health
 
 ## DigitalOcean DOKS
 
-ใช้เมื่อ cluster อยู่บน **DigitalOcean Kubernetes** และ `kubectl` / `doctl kubeconfig save` ใช้งานได้แล้ว
+ส่วนนี้เป็นคู่มือติดตั้งบน **DigitalOcean Kubernetes** เมื่อมี cluster ใหม่ — **cluster เดิมที่เคยใช้ demo ถูก destroy แล้ว** จึงไม่มี live URL จาก DO ใน README
+
+ใช้ขั้นตอนด้านล่างเมื่อมี DOKS และ `kubectl` / `doctl kubeconfig save` ใช้งานได้แล้ว
 
 ### 1. ติดตั้ง Argo CD
 

@@ -19,7 +19,7 @@
 | Container | Docker (multi-stage build) |
 | Orchestration | Kubernetes |
 | Local K8s | kind (Docker-based) |
-| Production K8s | DigitalOcean Kubernetes (DOKS) |
+| Production K8s | DigitalOcean Kubernetes (DOKS) — เคย deploy แล้ว **destroy cluster** แล้ว (ไม่มีสภาพแวดล้อม DO สาธารณะ) |
 | Package manager | Helm |
 | GitOps controller | ArgoCD |
 | Progressive delivery | Argo Rollouts (canary deployment) |
@@ -132,7 +132,7 @@ shipyard/
 - **Image tag update:** GitHub Actions push image แล้ว auto-update `image.tag` ใน `values.yaml` → ArgoCD detect diff → sync อัตโนมัติ
 - **Canary steps:** 20% → pause (manual promote) → 50% → 100%
 - **Local dev:** `docker compose up` รัน 3 services + PostgreSQL พร้อมกัน
-- **DOKS credit:** ใช้ DigitalOcean $200 credit จาก GitHub Student Pack
+- **DOKS:** เคยใช้ credit / cluster สำหรับการเรียนรู้ — cluster ถูก destroy แล้วเพื่อลดค่าใช้จ่าย; คู่มือติดตั้งยังอยู่ใน README
 
 ---
 
@@ -167,3 +167,4 @@ shipyard/
 - [x] Day 6: React frontend — pages (home, todos, login, register), API client, Vite dev proxy, nginx Dockerfile, docker-compose `frontend` service
 - [x] Day 7: Helm chart `gitops/charts/frontend` (Deployment, Service, Ingress, ConfigMap nginx for K8s upstreams), GitHub Actions `ci-frontend.yml`, ArgoCD `frontend-app.yaml`
 - [x] Day 9: Argo Rollouts — `gitops/argocd/argo-rollouts-app.yaml`; `todo-service` chart uses `Rollout` + canary (20% → pause → 50% → 100%); README badges + diagram + rollouts usage
+- [x] DOKS: เคยมี live demo บน DO — cluster ถูก destroy แล้ว; portfolio สาธารณะผ่าน GitHub Pages (`skyshine.online`)
