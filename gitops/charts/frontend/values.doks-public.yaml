@@ -1,0 +1,5 @@
+# Merged on DOKS via Argo CD (see frontend-app.yaml). Exposes the UI on a
+# DigitalOcean Load Balancer — use http://<EXTERNAL-IP>/ (add DNS A record for a name).
+# Local kind: EXTERNAL-IP may stay Pending; port-forward to the Service still works.
+service:
+  type: LoadBalancer

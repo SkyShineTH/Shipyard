@@ -9,6 +9,10 @@ spec:
     repoURL: 'https://github.com/SkyShineTH/Shipyard'
     targetRevision: main
     path: gitops/charts/frontend
+    helm:
+      valueFiles:
+        - values.yaml
+        - values.doks-public.yaml
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: shipyard

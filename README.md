@@ -56,7 +56,7 @@ gitops/
   charts/
     todo-service/
     auth-service/
-    frontend/               # ConfigMap nginx for K8s upstreams; Deployment + Service + Ingress
+    frontend/               # values.doks-public.yaml = LoadBalancer on DOKS; Deployment + Service + Ingress
   argocd/
     argo-rollouts-app.yaml  # Application: argo-rollouts (controller + CRDs)
     todo-app.yaml           # Application: shipyard-todo-service (Rollout)
@@ -323,13 +323,23 @@ kubectl -n shipyard get rollout,deploy,svc,pods
 
 ถ้าแอปติด **OutOfSync / Unknown** ให้เปิด Argo CD UI → Sync หรือ hard refresh ตาม [Troubleshooting](#argocd-shows-unknown)
 
-### 5. Ingress และโดเมน (ถ้าต้องการ URL สาธารณะ)
+### 5. URL สาธารณะ (DOKS)
 
-1. ติดตั้ง **Ingress Controller** (เช่น NGINX) แบบ `Service type=LoadBalancer` บน DOKS  
-2. ใน `gitops/charts/frontend/values.yaml` เปิด `ingress.enabled: true` ตั้ง `ingress.className` และ `ingress.host` ให้ตรงโดเมน  
-3. ชี้ DNS **A record** ไปที่ IP ของ Load Balancer ของ ingress
+แอป **`shipyard-frontend`** ใช้ Helm `valueFiles` รวม **`values.doks-public.yaml`** ซึ่งตั้ง `service.type: LoadBalancer` — หลัง Argo CD sync แล้ว DigitalOcean จะสร้าง **Load Balancer** และได้ **EXTERNAL-IP**
 
-จนกว่าจะทำข้อนี้ ยังทดสอบผ่าน **port-forward** ไปที่ `svc/shipyard-frontend` ได้เหมือนใน kind
+```bash
+kubectl -n shipyard get svc shipyard-frontend
+```
+
+รอจน **`EXTERNAL-IP`** ไม่เป็น `<pending>` แล้วเปิดเบราว์เซอร์:
+
+- **`http://<EXTERNAL-IP>/`** — นี่คือ public URL ของ Shipyard (HTTP)
+
+ถ้ามี **โดเมนของคุณ**: สร้าง DNS **A record** ชี้ไปที่ IP นั้น (เช่น `shipyard.example.com` → IP เดียวกัน) แล้วใช้ `http://shipyard.example.com/`
+
+**HTTPS + certificate:** ต้องมี **Ingress Controller** + มักใช้ **cert-manager** (Let’s Encrypt) — ตั้ง `ingress.enabled: true` ใน chart, `ingress.className` / `ingress.host` / TLS ตามคู่มือ [DO + Ingress](https://docs.digitalocean.com/products/kubernetes/how-to/configure-load-balancers/) / [nginx ingress](https://kubernetes.github.io/ingress-nginx/deploy/#digital-ocean) แล้วปิดหรือคง LoadBalancer ตามแพทเทิร์นที่เลือก
+
+**บน kind (local):** `EXTERNAL-IP` อาจค้าง `pending` โดยไม่มี MetalLB — ยังใช้ **`kubectl -n shipyard port-forward svc/shipyard-frontend 3000:80`** ได้ตามเดิม
 
 ### DOKS: Pod ค้าง `Pending` / Argo CD `Degraded` — `Insufficient cpu`
 
