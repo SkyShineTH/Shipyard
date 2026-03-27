@@ -75,7 +75,7 @@ CONTEXT.md                  # extended project notes & timeline
 | Backend      | Go, Gin, GORM                       |
 | Database     | PostgreSQL 16                       |
 | Images       | Docker (multi-stage)                |
-| Cluster      | kind (local), DOKS (planned)        |
+| Cluster      | kind (local), DOKS (see [DOKS](#digitalocean-doks)) |
 | GitOps       | Helm + ArgoCD + Argo Rollouts (todo canary) |
 | Registry     | GHCR                                |
 
@@ -153,7 +153,7 @@ kubectl -n shipyard get rollout,deploy,svc,pods
 
 ### Argo Rollouts (todo-service canary)
 
-`gitops/charts/todo-service` deploys a **Rollout** (not a Deployment) with steps: **20% → pause (manual promote) → 50% → 100%**. Without a service mesh, weights are approximated via replica counts; the chart defaults to **5** replicas.
+`gitops/charts/todo-service` deploys a **Rollout** (not a Deployment) with steps: **20% → pause (manual promote) → 50% → 100%**. Without a service mesh, weights are approximated via replica counts; the chart defaults to **2** replicas so a **single small node** (e.g. one DOKS worker) can still schedule todo + frontend + auth. Increase `replicaCount` in `values.yaml` on larger clusters if you want a finer canary split.
 
 Install the [kubectl argo rollouts plugin](https://argo-rollouts.readthedocs.io/en/stable/features/kubectl-plugin/), then after a new image tag syncs:
 
@@ -202,6 +202,141 @@ Then open `http://127.0.0.1:3000` or hit the APIs directly, for example:
 curl http://127.0.0.1:8081/health
 curl http://127.0.0.1:8080/health
 ```
+
+## DigitalOcean DOKS
+
+ใช้เมื่อ cluster อยู่บน **DigitalOcean Kubernetes** และ `kubectl` / `doctl kubeconfig save` ใช้งานได้แล้ว
+
+### 1. ติดตั้ง Argo CD
+
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl -n argocd rollout status deploy/argocd-server --timeout=300s
+```
+
+รหัสผ่าน admin เริ่มต้น (user **`admin`**):
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+บน **PowerShell**:
+
+```powershell
+[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String((kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}')))
+```
+
+เข้า UI แบบเร็ว: port-forward
+
+```bash
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+```
+
+แล้วเปิด `https://127.0.0.1:8080` (ยอมรับ self-signed cert)
+
+**หรือ** ให้ DO สร้าง Load Balancer สำหรับ UI:
+
+```bash
+kubectl patch svc argocd-server -n argocd -p '{"spec":{"type":"LoadBalancer"}}'
+kubectl -n argocd get svc argocd-server
+```
+
+รอจนได้ **EXTERNAL-IP** แล้วเข้า `https://<EXTERNAL-IP>` (Argo CD ใช้ TLS บน server อยู่แล้ว)
+
+### 2. Namespace และ PostgreSQL
+
+สร้าง namespace สำหรับแอปและฐานข้อมูล:
+
+```bash
+kubectl create namespace shipyard
+```
+
+**ตัวเลือก A — PostgreSQL ใน cluster (เหมาะกับ demo):** ใช้ Helm + Bitnami แล้วตั้งชื่อ Service เป็น `postgres` ให้ตรงกับตัวอย่าง secret ด้านล่าง
+
+```bash
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+helm install postgres bitnami/postgresql -n shipyard \
+  --set fullnameOverride=postgres \
+  --set auth.username=shipyard \
+  --set auth.password='changeme' \
+  --set auth.database=shipyard
+```
+
+รอจน `kubectl -n shipyard get pods` แสดง Postgres **Running** ก่อนสร้าง secret และ sync แอป
+
+**ตัวเลือก B — DO Managed Database:** สร้าง Postgres ในเมนู **Databases** แล้วใส่ `DB_HOST` / `DB_PORT` / `DB_SSLMODE=require` (และ user/password/db name) ใน secret ให้ตรงค่าที่ DO ให้
+
+### 3. Secrets (`shipyard`) และ GHCR (ถ้า image เป็น private)
+
+สร้าง secret แอป (แก้รหัสผ่านและ `JWT_SECRET`):
+
+```bash
+kubectl -n shipyard create secret generic todo-service-secret \
+  --from-literal=DB_HOST=postgres \
+  --from-literal=DB_USER=shipyard \
+  --from-literal=DB_PASSWORD=changeme \
+  --from-literal=DB_NAME=shipyard \
+  --from-literal=DB_PORT=5432 \
+  --from-literal=DB_SSLMODE=disable \
+  --from-literal=JWT_SECRET="replace-with-a-long-random-secret"
+
+kubectl -n shipyard create secret generic auth-service-secret \
+  --from-literal=DB_HOST=postgres \
+  --from-literal=DB_USER=shipyard \
+  --from-literal=DB_PASSWORD=changeme \
+  --from-literal=DB_NAME=shipyard \
+  --from-literal=DB_PORT=5432 \
+  --from-literal=DB_SSLMODE=disable \
+  --from-literal=JWT_SECRET="replace-with-a-long-random-secret"
+```
+
+ถ้า GHCR **private** ให้สร้าง pull secret (ใช้ GitHub username + PAT ที่มี `read:packages`):
+
+```bash
+kubectl -n shipyard create secret docker-registry ghcr-pull \
+  --docker-server=ghcr.io \
+  --docker-username=YOUR_GITHUB_USER \
+  --docker-password=YOUR_GITHUB_PAT \
+  --docker-email=you@example.com
+```
+
+จากนั้นใน `gitops/charts/{todo-service,auth-service,frontend}/values.yaml` ตั้ง `imagePullSecrets: [{ name: ghcr-pull }]` (หรือ override ผ่าน Argo CD UI → Parameters) แล้ว commit — หรือใช้ **public** package บน GHCR เพื่อไม่ต้องมี secret
+
+### 4. ลง GitOps apps (ลำดับสำคัญ)
+
+จากราก repo (หรือ path ที่มี `gitops/argocd/`):
+
+```bash
+kubectl apply -f gitops/argocd/argo-rollouts-app.yaml
+kubectl -n argocd wait --for=jsonpath='{.status.health.status}'=Healthy application/argo-rollouts --timeout=600s
+kubectl apply -f gitops/argocd/
+```
+
+ตรวจสอบ:
+
+```bash
+kubectl -n argocd get applications.argoproj.io
+kubectl -n shipyard get rollout,deploy,svc,pods
+```
+
+ถ้าแอปติด **OutOfSync / Unknown** ให้เปิด Argo CD UI → Sync หรือ hard refresh ตาม [Troubleshooting](#argocd-shows-unknown)
+
+### 5. Ingress และโดเมน (ถ้าต้องการ URL สาธารณะ)
+
+1. ติดตั้ง **Ingress Controller** (เช่น NGINX) แบบ `Service type=LoadBalancer` บน DOKS  
+2. ใน `gitops/charts/frontend/values.yaml` เปิด `ingress.enabled: true` ตั้ง `ingress.className` และ `ingress.host` ให้ตรงโดเมน  
+3. ชี้ DNS **A record** ไปที่ IP ของ Load Balancer ของ ingress
+
+จนกว่าจะทำข้อนี้ ยังทดสอบผ่าน **port-forward** ไปที่ `svc/shipyard-frontend` ได้เหมือนใน kind
+
+### DOKS: Pod ค้าง `Pending` / Argo CD `Degraded` — `Insufficient cpu`
+
+ถ้า `kubectl describe pod ...` ใน Events มี **`Insufficient cpu`**: node เดียวไม่พอรับ **หลาย replica** (เดิม todo ตั้ง 5 ตัว + frontend + auth + Postgres + Argo CD)
+
+- แก้ใน repo: ลด `replicaCount` ใน `gitops/charts/todo-service/values.yaml` (ค่าเริ่มต้นปัจจุบันตั้งให้เหมาะกับ cluster เล็กแล้ว) แล้ว push ให้ GitOps sync  
+- หรือเพิ่มขนาด/จำนวน node ใน DOKS
 
 ## CI/CD (GitHub Actions)
 

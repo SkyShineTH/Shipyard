@@ -1,8 +1,9 @@
 # Default values for todo-service.
 # Override with: helm install todo-service ./gitops/charts/todo-service -f my-values.yaml
 
-# Canary weights (20% / 50%) map to replica counts; 5+ pods gives a meaningful 20% slice.
-replicaCount: 5
+# Canary weights map to replica counts. Use 2–3 on a single small node (e.g. DOKS 1× basic node);
+# raise to 5+ on larger clusters for a clearer 20% canary slice.
+replicaCount: 2
 
 image:
   # IMPORTANT: must match the GHCR path your CI pushes to.
