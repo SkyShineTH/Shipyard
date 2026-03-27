@@ -26,9 +26,10 @@ containerSecurityContext:
   capabilities:
     drop:
       - ALL
-    # Required so nginx can bind to port 80 after drop ALL (otherwise CrashLoop on many clusters).
+    # After drop ALL, nginx entrypoint needs these or it crashes (bind :80, chown cache dirs).
     add:
       - NET_BIND_SERVICE
+      - CHOWN
 
 service:
   type: ClusterIP

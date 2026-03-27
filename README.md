@@ -378,6 +378,14 @@ kubectl -n shipyard describe pod <pod-name>
 
 - Ensure `gitops/charts/frontend/values.yaml` → `upstream.auth.host` / `upstream.todo.host` match the **Service** names of auth and todo in `shipyard` (defaults: `shipyard-auth-service`, `shipyard-todo-service`).
 
+### Frontend `CrashLoopBackOff` — nginx `chown(...client_temp...) Operation not permitted`
+
+Official nginx entrypoint runs `chown` on cache dirs; with `capabilities.drop: ALL` you must **add** `CHOWN` (and `NET_BIND_SERVICE` for port 80). The chart `values.yaml` includes both; sync the latest chart if you still see this error.
+
+### Argo CD: `shipyard-todo-service` shows **Suspended**
+
+Often the **Rollout** is paused on a **canary step** (`CanaryPauseStep`), not “sync suspended.” Check: `kubectl -n shipyard get rollout shipyard-todo-service -o jsonpath='{.status.pauseConditions}'`. Continue with [kubectl argo rollouts plugin](https://argo-rollouts.readthedocs.io/en/stable/features/kubectl-plugin/): `kubectl argo rollouts promote shipyard-todo-service -n shipyard`.
+
 ### ArgoCD shows `Unknown`
 
 - Hard refresh:
