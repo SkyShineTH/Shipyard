@@ -6,6 +6,12 @@ A full-stack **GitOps** portfolio project: **React + Vite** frontend, **Go** mic
 [![CI auth-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml)
 [![CI frontend](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml)
 
+## Live demo (DOKS)
+
+**HTTP (no custom domain):** [http://163.47.11.209/](http://163.47.11.209/) — frontend ผ่าน DigitalOcean Load Balancer ของ `shipyard-frontend`. ถ้า LB ถูกสร้างใหม่ IP อาจเปลี่ยน: รัน `kubectl -n shipyard get svc shipyard-frontend` แล้วอัปเดตลิงก์ใน README ให้ตรง **EXTERNAL-IP**
+
+**HTTPS:** ทำได้แต่ **ยุ่งกว่า** — Let’s Encrypt ต้องมี **โดเมน + DNS** ชี้มาที่ cluster แล้วตั้ง **Ingress + cert-manager** (หรือ TLS บน LB ฝั่ง DO). แบบ **HTTPS กับแค่ IP** ไม่ใช่มาตรฐาน (มักเป็น self-signed เบราว์เซอร์เตือน) เลยสำหรับ portfolio ใช้ **HTTP + IP** แบบด้านบนก่อนได้
+
 ## Architecture (high level)
 
 - **`todo-service`** (Go/Gin + GORM) — REST API for todos (JWT-protected); **Rollout** (canary) in Kubernetes
@@ -333,11 +339,11 @@ kubectl -n shipyard get svc shipyard-frontend
 
 รอจน **`EXTERNAL-IP`** ไม่เป็น `<pending>` แล้วเปิดเบราว์เซอร์:
 
-- **`http://<EXTERNAL-IP>/`** — นี่คือ public URL ของ Shipyard (HTTP)
+- **`http://<EXTERNAL-IP>/`** — นี่คือ public URL ของ Shipyard (HTTP) **ไม่ต้องมีโดเมน** ใช้แค่ IP ก็เข้าได้
 
-ถ้ามี **โดเมนของคุณ**: สร้าง DNS **A record** ชี้ไปที่ IP นั้น (เช่น `shipyard.example.com` → IP เดียวกัน) แล้วใช้ `http://shipyard.example.com/`
+ถ้ามี **โดเมน** (ไม่บังคับ): สร้าง DNS **A record** ชี้ไปที่ IP นั้น แล้วใช้ `http://ชื่อโดเมน/` — ถ้าไม่มีโดเมน ข้ามขั้นนี้ได้เลย
 
-**HTTPS + certificate:** ต้องมี **Ingress Controller** + มักใช้ **cert-manager** (Let’s Encrypt) — ตั้ง `ingress.enabled: true` ใน chart, `ingress.className` / `ingress.host` / TLS ตามคู่มือ [DO + Ingress](https://docs.digitalocean.com/products/kubernetes/how-to/configure-load-balancers/) / [nginx ingress](https://kubernetes.github.io/ingress-nginx/deploy/#digital-ocean) แล้วปิดหรือคง LoadBalancer ตามแพทเทิร์นที่เลือก
+**HTTPS:** ต้องมี **โดเมน** (Let’s Encrypt ไม่ออก cert ให้ “แค่ IP” แบบทั่วไป) จากนั้นติด **Ingress Controller** + **cert-manager** แล้วเปิด `ingress.enabled` / TLS ใน chart ตามคู่มือ [DO + Ingress](https://docs.digitalocean.com/products/kubernetes/how-to/configure-load-balancers/) / [nginx ingress](https://kubernetes.github.io/ingress-nginx/deploy/#digital-ocean) — ใช้เวลาตั้งค่ามากกว่า **LoadBalancer + HTTP** พอสมควร; ถ้ายังไม่จำเป็นให้ใช้ demo แบบ HTTP ด้านบนก่อน
 
 **บน kind (local):** `EXTERNAL-IP` อาจค้าง `pending` โดยไม่มี MetalLB — ยังใช้ **`kubectl -n shipyard port-forward svc/shipyard-frontend 3000:80`** ได้ตามเดิม
 
