@@ -26,10 +26,12 @@ containerSecurityContext:
   capabilities:
     drop:
       - ALL
-    # After drop ALL, nginx entrypoint needs these or it crashes (bind :80, chown cache dirs).
+    # After drop ALL, official nginx image still: bind :80, chown cache, setuid/setgid workers (uid 101).
     add:
       - NET_BIND_SERVICE
       - CHOWN
+      - SETUID
+      - SETGID
 
 service:
   type: ClusterIP

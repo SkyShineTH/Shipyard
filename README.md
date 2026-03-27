@@ -378,9 +378,21 @@ kubectl -n shipyard describe pod <pod-name>
 
 - Ensure `gitops/charts/frontend/values.yaml` → `upstream.auth.host` / `upstream.todo.host` match the **Service** names of auth and todo in `shipyard` (defaults: `shipyard-auth-service`, `shipyard-todo-service`).
 
-### Frontend `CrashLoopBackOff` — nginx `chown(...client_temp...) Operation not permitted`
+### Frontend `CrashLoopBackOff` — nginx `chown` / `setgid(101) Operation not permitted`
 
-Official nginx entrypoint runs `chown` on cache dirs; with `capabilities.drop: ALL` you must **add** `CHOWN` (and `NET_BIND_SERVICE` for port 80). The chart `values.yaml` includes both; sync the latest chart if you still see this error.
+Official nginx drops to user `101` in workers; with `capabilities.drop: ALL` add **`NET_BIND_SERVICE`**, **`CHOWN`**, **`SETUID`**, **`SETGID`**. The chart `values.yaml` includes these — sync the latest `shipyard-frontend` Application.
+
+### DOKS: รีเซ็ตเฉพาะแอปใน `shipyard` (ข้อมูล Postgres หาย)
+
+ถ้าอยากเริ่มติดตั้งแอปใหม่โดยไม่ลบ Argo CD:
+
+```bash
+kubectl delete namespace shipyard
+kubectl create namespace shipyard
+# ติดตั้ง Postgres + secrets ตามหัวข้อ DigitalOcean DOKS แล้ว apply gitops/argocd/ อีกครั้ง (หรือ Sync ใน Argo CD)
+```
+
+ถ้าจะลบทั้ง Argo CD ด้วย: `kubectl delete namespace argocd` แล้วติดตั้ง Argo CD + Rollouts + Applications ตาม README
 
 ### Argo CD: `shipyard-todo-service` shows **Suspended**
 
