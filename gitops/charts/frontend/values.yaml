@@ -7,7 +7,7 @@ image:
   repository: ghcr.io/skyshineth/shipyard-frontend
   pullPolicy: IfNotPresent
   # Overwritten by GitHub Actions CI on each push
-  tag: "sha-8208707"
+  tag: "sha-3bf9e59"
 
 imagePullSecrets: []
 
