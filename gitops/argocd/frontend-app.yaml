@@ -10,9 +10,11 @@ spec:
     targetRevision: main
     path: gitops/charts/frontend
     helm:
+      # Default: kind / local — ClusterIP (see values.kind-local.yaml).
+      # On DOKS for a public LoadBalancer, replace values.kind-local.yaml with values.doks-public.yaml.
       valueFiles:
         - values.yaml
-        - values.doks-public.yaml
+        - values.kind-local.yaml
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: shipyard

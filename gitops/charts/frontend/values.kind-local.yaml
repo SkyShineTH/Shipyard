@@ -1,0 +1,8 @@
+# Local kind / any cluster without a cloud LoadBalancer (no MetalLB).
+# Keeps frontend Service as ClusterIP so Argo CD reaches Healthy instead of Progressing
+# on a LoadBalancer stuck at EXTERNAL-IP <pending>.
+#
+# For a public HTTP demo on DigitalOcean Kubernetes, swap this file for
+# values.doks-public.yaml in gitops/argocd/frontend-app.yaml — see README (DOKS).
+service:
+  type: ClusterIP

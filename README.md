@@ -13,7 +13,7 @@ A full-stack **GitOps** portfolio project: **React + Vite** frontend, **Go** mic
 - **รันเต็ม stack ในเครื่อง:** [Local development (Docker Compose)](#local-development-docker-compose) หรือ [Kubernetes (kind) + ArgoCD](#kubernetes-kind--argocd-gitops)
 - **โปรเจกต์ / portfolio (static):** [skyshine.online](https://skyshine.online) — GitHub Pages (ไม่ใช่ cluster นี้)
 
-ถ้าสร้าง DOKS ใหม่และติดตั้งตาม [DigitalOcean DOKS](#digitalocean-doks) ได้ **EXTERNAL-IP** จาก `kubectl -n shipyard get svc shipyard-frontend` แล้วใช้ `http://<EXTERNAL-IP>/` เป็น demo ชั่วคราวได้อีกครั้ง (HTTPS ต้องมีโดเมน + Ingress/cert-manager หรือ TLS บน LB ตามคู่มือ DO)
+ถ้าสร้าง DOKS ใหม่และติดตั้งตาม [DigitalOcean DOKS](#digitalocean-doks) อย่าลืมตั้ง `frontend-app` ให้ใช้ **`values.doks-public.yaml`** เพื่อได้ LoadBalancer แล้วค่อยดู **EXTERNAL-IP** จาก `kubectl -n shipyard get svc shipyard-frontend` ใช้ `http://<EXTERNAL-IP>/` เป็น demo ชั่วคราวได้อีกครั้ง (HTTPS ต้องมีโดเมน + Ingress/cert-manager หรือ TLS บน LB ตามคู่มือ DO)
 
 ## Architecture (high level)
 
@@ -65,7 +65,7 @@ gitops/
   charts/
     todo-service/
     auth-service/
-    frontend/               # values.doks-public.yaml = LoadBalancer on DOKS; Deployment + Service + Ingress
+    frontend/               # values.kind-local.yaml (ClusterIP, kind); values.doks-public.yaml (LoadBalancer, DOKS)
   argocd/
     argo-rollouts-app.yaml  # Application: argo-rollouts (controller + CRDs)
     todo-app.yaml           # Application: shipyard-todo-service (Rollout)
@@ -159,6 +159,8 @@ Then watch:
 kubectl -n argocd get applications.argoproj.io
 kubectl -n shipyard get rollout,deploy,svc,pods
 ```
+
+**Frontend + Argo health (kind):** `gitops/argocd/frontend-app.yaml` merges **`values.kind-local.yaml`** so the Service stays **ClusterIP**. That avoids Argo CD **Progressing** from a `LoadBalancer` with perpetual `<pending>` EXTERNAL-IP on kind. Open the UI with **`kubectl -n shipyard port-forward svc/shipyard-frontend 3000:80`**.
 
 ### Argo Rollouts (todo-service canary)
 
@@ -336,7 +338,17 @@ kubectl -n shipyard get rollout,deploy,svc,pods
 
 ### 5. URL สาธารณะ (DOKS)
 
-แอป **`shipyard-frontend`** ใช้ Helm `valueFiles` รวม **`values.doks-public.yaml`** ซึ่งตั้ง `service.type: LoadBalancer` — หลัง Argo CD sync แล้ว DigitalOcean จะสร้าง **Load Balancer** และได้ **EXTERNAL-IP**
+ค่าเริ่มต้นใน repo: **`gitops/argocd/frontend-app.yaml`** ใช้ **`values.kind-local.yaml`** (`service.type: ClusterIP`) เหมาะกับ **kind / cluster ที่ไม่มี cloud LB** — Argo CD จะไม่ค้าง **Progressing** เพราะ LoadBalancer ไม่มี **EXTERNAL-IP**
+
+**เมื่อ deploy บน DigitalOcean Kubernetes** และต้องการ **Load Balancer + IP สาธารณะ** ให้แก้ `helm.valueFiles` ใน `gitops/argocd/frontend-app.yaml` จาก `values.kind-local.yaml` เป็น **`values.doks-public.yaml`** แล้ว commit (หรือแก้ใน Argo CD UI → App details → Parameters / manifest แล้ว Sync):
+
+```yaml
+      valueFiles:
+        - values.yaml
+        - values.doks-public.yaml
+```
+
+หลัง sync แล้ว DigitalOcean จะสร้าง LB และได้ **EXTERNAL-IP**:
 
 ```bash
 kubectl -n shipyard get svc shipyard-frontend
@@ -344,13 +356,13 @@ kubectl -n shipyard get svc shipyard-frontend
 
 รอจน **`EXTERNAL-IP`** ไม่เป็น `<pending>` แล้วเปิดเบราว์เซอร์:
 
-- **`http://<EXTERNAL-IP>/`** — นี่คือ public URL ของ Shipyard (HTTP) **ไม่ต้องมีโดเมน** ใช้แค่ IP ก็เข้าได้
+- **`http://<EXTERNAL-IP>/`** — public URL (HTTP) **ไม่ต้องมีโดเมน**
 
-ถ้ามี **โดเมน** (ไม่บังคับ): สร้าง DNS **A record** ชี้ไปที่ IP นั้น แล้วใช้ `http://ชื่อโดเมน/` — ถ้าไม่มีโดเมน ข้ามขั้นนี้ได้เลย
+ถ้ามี **โดเมน** (ไม่บังคับ): สร้าง DNS **A record** ชี้ไปที่ IP นั้น แล้วใช้ `http://ชื่อโดเมน/`
 
 **HTTPS:** ต้องมี **โดเมน** (Let’s Encrypt ไม่ออก cert ให้ “แค่ IP” แบบทั่วไป) จากนั้นติด **Ingress Controller** + **cert-manager** แล้วเปิด `ingress.enabled` / TLS ใน chart ตามคู่มือ [DO + Ingress](https://docs.digitalocean.com/products/kubernetes/how-to/configure-load-balancers/) / [nginx ingress](https://kubernetes.github.io/ingress-nginx/deploy/#digital-ocean) — ใช้เวลาตั้งค่ามากกว่า **LoadBalancer + HTTP** พอสมควร; ถ้ายังไม่จำเป็นให้ใช้ demo แบบ HTTP ด้านบนก่อน
 
-**บน kind (local):** `EXTERNAL-IP` อาจค้าง `pending` โดยไม่มี MetalLB — ยังใช้ **`kubectl -n shipyard port-forward svc/shipyard-frontend 3000:80`** ได้ตามเดิม
+**บน kind (local):** ใช้ **`kubectl -n shipyard port-forward svc/shipyard-frontend 3000:80`** — ไม่ต้องมี MetalLB
 
 ### DOKS: Pod ค้าง `Pending` / Argo CD `Degraded` — `Insufficient cpu`
 
