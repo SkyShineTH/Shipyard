@@ -39,6 +39,11 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+            {{- if .Values.originTls.enabled }}
+            - name: https
+              containerPort: {{ .Values.service.httpsPort }}
+              protocol: TCP
+            {{- end }}
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d/default.conf
@@ -46,6 +51,11 @@ spec:
               readOnly: true
             - name: nginx-cache
               mountPath: /var/cache/nginx
+            {{- if .Values.originTls.enabled }}
+            - name: origin-tls
+              mountPath: {{ .Values.originTls.mountPath }}
+              readOnly: true
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /
@@ -68,3 +78,8 @@ spec:
             name: {{ include "frontend.fullname" . }}-nginx
         - name: nginx-cache
           emptyDir: {}
+        {{- if .Values.originTls.enabled }}
+        - name: origin-tls
+          secret:
+            secretName: {{ .Values.originTls.secretName }}
+        {{- end }}

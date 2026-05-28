@@ -9,6 +9,14 @@ data:
   default.conf: |
     server {
         listen 80;
+        {{- if .Values.originTls.enabled }}
+        listen 443 ssl;
+        ssl_certificate {{ .Values.originTls.mountPath }}/tls.crt;
+        ssl_certificate_key {{ .Values.originTls.mountPath }}/tls.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_session_cache shared:SSL:10m;
+        ssl_session_timeout 10m;
+        {{- end }}
         server_name localhost;
         root /usr/share/nginx/html;
         index index.html;

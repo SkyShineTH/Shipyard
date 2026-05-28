@@ -1,6 +1,7 @@
 # Environment variables - NEVER commit these
 .env
 *.env
+.secrets/
 
 # Go build artifacts
 *.exe

@@ -36,6 +36,15 @@ containerSecurityContext:
 service:
   type: ClusterIP
   port: 80
+  httpsPort: 443
+
+# Optional TLS for the frontend origin. This is useful behind Cloudflare
+# Full (strict): create a Kubernetes TLS secret from a Cloudflare Origin
+# Certificate, then enable this and expose service.httpsPort.
+originTls:
+  enabled: false
+  secretName: ""
+  mountPath: /etc/nginx/tls
 
 ingress:
   enabled: false
