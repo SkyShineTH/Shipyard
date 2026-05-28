@@ -8,7 +8,16 @@ A full-stack **GitOps** portfolio project: **React + Vite** frontend, **Go** mic
 
 ## Live demo
 
-**DigitalOcean Kubernetes (DOKS)** ถูก **destroy** แล้วเพื่อลดค่าใช้จ่ายหลังใช้เรียนรู้ — **ไม่มี URL สาธารณะของ full-stack app บน cloud ในตอนนี้**
+Shipyard is currently available as an on-demand DOKS portfolio demo:
+
+- **Live demo:** [https://shipyard.skyshine.online](https://shipyard.skyshine.online)
+- **Runtime:** DigitalOcean Kubernetes, Argo CD, Argo Rollouts, Helm, PostgreSQL, and a DigitalOcean Load Balancer
+- **Cost model:** small on-demand demo environment; see [docs/cost-control.md](docs/cost-control.md)
+- **Evidence case study:** [docs/doks-live-demo.md](docs/doks-live-demo.md)
+
+Historical note: an earlier DOKS demo environment was destroyed to reduce cost
+after learning/testing. The current public demo is intentionally managed as an
+on-demand portfolio environment and can be scaled down when it is not needed.
 
 - **รันเต็ม stack ในเครื่อง:** [Local development (Docker Compose)](#local-development-docker-compose) หรือ [Kubernetes (kind) + ArgoCD](#kubernetes-kind--argocd-gitops)
 - **โปรเจกต์ / portfolio (static):** [skyshine.online](https://skyshine.online) — GitHub Pages (ไม่ใช่ cluster นี้)
@@ -84,7 +93,7 @@ CONTEXT.md                  # extended project notes & timeline
 | Backend      | Go, Gin, GORM                       |
 | Database     | PostgreSQL 16                       |
 | Images       | Docker (multi-stage)                |
-| Cluster      | kind (local); DOKS เป็นทางเลือก — ดู [DOKS](#digitalocean-doks) (cluster สาธารณะเคยใช้แล้วถูก destroy) |
+| Cluster      | kind (local); DOKS on-demand portfolio demo — see [DOKS](#digitalocean-doks) |
 | GitOps       | Helm + ArgoCD + Argo Rollouts (todo canary) |
 | Registry     | GHCR                                |
 
@@ -216,7 +225,7 @@ curl http://127.0.0.1:8080/health
 
 ## DigitalOcean DOKS
 
-ส่วนนี้เป็นคู่มือติดตั้งบน **DigitalOcean Kubernetes** เมื่อมี cluster ใหม่ — **cluster เดิมที่เคยใช้ demo ถูก destroy แล้ว** จึงไม่มี live URL จาก DO ใน README
+ส่วนนี้เป็นคู่มือติดตั้งและดูแล **DigitalOcean Kubernetes** สำหรับ portfolio live demo แบบ on-demand — demo ปัจจุบันอยู่ที่ [https://shipyard.skyshine.online](https://shipyard.skyshine.online)
 
 ใช้ขั้นตอนด้านล่างเมื่อมี DOKS และ `kubectl` / `doctl kubeconfig save` ใช้งานได้แล้ว
 
