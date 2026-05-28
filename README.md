@@ -1,334 +1,156 @@
 # Shipyard
 
-A full-stack **GitOps** portfolio project: **React + Vite** frontend, **Go** microservices + **PostgreSQL**, deployed to Kubernetes with **Helm** and **ArgoCD**. CI builds images, pushes to **GHCR**, and bumps chart image tags for the GitOps loop. **`todo-service`** uses **Argo Rollouts** for canary-style progressive delivery (20% → manual promote → 50% → 100%).
+A full-stack GitOps portfolio project: React + Vite frontend, Go microservices,
+PostgreSQL, Docker, Kubernetes, Helm, Argo CD, Argo Rollouts, GitHub Actions,
+and GHCR.
+
+`todo-service` is deployed with Argo Rollouts so the project can demonstrate a
+canary-style promotion workflow in Kubernetes.
 
 [![CI todo-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-todo.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-todo.yml)
 [![CI auth-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml)
 [![CI frontend](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml)
 
-## Live demo
+## Live Demo
 
-Shipyard is currently available as an on-demand DOKS portfolio demo:
+- Demo: <https://shipyard.skyshine.online>
+- Runtime: DigitalOcean Kubernetes, Argo CD, Argo Rollouts, Helm, PostgreSQL,
+  and a DigitalOcean Load Balancer.
+- TLS: Cloudflare proxy with origin HTTPS enabled through a Kubernetes TLS
+  secret.
+- Cost model: small on-demand portfolio environment. See
+  [docs/cost-control.md](docs/cost-control.md).
+- Evidence case study: [docs/doks-live-demo.md](docs/doks-live-demo.md).
 
-- **Live demo:** [https://shipyard.skyshine.online](https://shipyard.skyshine.online)
-- **Runtime:** DigitalOcean Kubernetes, Argo CD, Argo Rollouts, Helm, PostgreSQL, and a DigitalOcean Load Balancer
-- **Cost model:** small on-demand demo environment; see [docs/cost-control.md](docs/cost-control.md)
-- **Evidence case study:** [docs/doks-live-demo.md](docs/doks-live-demo.md)
+## Architecture
 
-Historical note: an earlier DOKS demo environment was destroyed to reduce cost
-after learning/testing. The current public demo is intentionally managed as an
-on-demand portfolio environment and can be scaled down when it is not needed.
-
-- **รันเต็ม stack ในเครื่อง:** [Local development (Docker Compose)](#local-development-docker-compose) หรือ [Kubernetes (kind) + ArgoCD](#kubernetes-kind--argocd-gitops)
-- **โปรเจกต์ / portfolio (static):** [skyshine.online](https://skyshine.online) — GitHub Pages (ไม่ใช่ cluster นี้)
-
-ถ้าสร้าง DOKS ใหม่และติดตั้งตาม [DigitalOcean DOKS](#digitalocean-doks) อย่าลืมตั้ง `frontend-app` ให้ใช้ **`values.doks-public.yaml`** เพื่อได้ LoadBalancer แล้วค่อยดู **EXTERNAL-IP** จาก `kubectl -n shipyard get svc shipyard-frontend` ใช้ `http://<EXTERNAL-IP>/` เป็น demo ชั่วคราวได้อีกครั้ง (HTTPS ต้องมีโดเมน + Ingress/cert-manager หรือ TLS บน LB ตามคู่มือ DO)
-
-## Architecture (high level)
-
-- **`todo-service`** (Go/Gin + GORM) — REST API for todos (JWT-protected); **Rollout** (canary) in Kubernetes
-- **`auth-service`** (Go/Gin + JWT + bcrypt) — register / login
-- **`frontend`** (React + Vite, nginx in production) — UI; nginx reverse-proxies `/api/v1/*` to the Go services
-- **PostgreSQL** — persistence
-- **Helm charts** — `gitops/charts/{todo-service,auth-service,frontend}`
-- **ArgoCD Applications** — `gitops/argocd/*.yaml` (GitOps loop) + **`argo-rollouts`** controller
-- **GitHub Actions** — `ci-todo.yml`, `ci-auth.yml`, `ci-frontend.yml`: build → push GHCR → update `image.tag` in chart `values.yaml`
+- `frontend`: React + Vite app served by nginx. In Kubernetes, nginx also
+  reverse-proxies `/api/v1/*` to the backend services.
+- `auth-service`: Go/Gin API for registration and login, backed by PostgreSQL
+  and JWT signing.
+- `todo-service`: Go/Gin API for authenticated todo CRUD operations. Deployed as
+  an Argo Rollouts `Rollout`.
+- `postgres`: PostgreSQL persistence.
+- `gitops/charts/*`: Helm charts for all services.
+- `gitops/argocd/*`: Argo CD Application manifests.
+- `.github/workflows/*`: CI workflows that build images, push to GHCR, and bump
+  Helm chart image tags.
 
 ```mermaid
 flowchart LR
-  subgraph ci [GitHub Actions]
-    build[Build and push GHCR]
-    bump[Bump chart image.tag]
-  end
-  subgraph gitops [GitOps]
-    acd[Argo CD]
-    roll[Argo Rollouts]
-  end
-  subgraph k8s [Kubernetes shipyard]
-    fe[frontend]
-    auth[auth-service]
-    todo[todo-service Rollout]
-    db[(PostgreSQL)]
-  end
-  build --> bump
-  bump --> acd
-  acd --> fe
-  acd --> auth
-  acd --> todo
-  acd --> roll
-  roll -.-> todo
-  fe --> auth
-  fe --> todo
-  auth --> db
+  user[User] --> cf[Cloudflare HTTPS]
+  cf --> lb[DigitalOcean Load Balancer]
+  lb --> fe[frontend nginx]
+  fe --> auth[auth-service]
+  fe --> todo[todo-service Rollout]
+  auth --> db[(PostgreSQL)]
   todo --> db
+
+  ci[GitHub Actions] --> ghcr[GHCR]
+  ci --> values[Helm image tag update]
+  values --> argo[Argo CD]
+  argo --> fe
+  argo --> auth
+  argo --> todo
+  rollouts[Argo Rollouts] --> todo
 ```
 
-## Repo structure
+## Stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 19, Vite 8, react-router-dom, nginx |
+| Backend | Go, Gin, GORM |
+| Database | PostgreSQL |
+| Images | Docker multi-stage builds |
+| Local runtime | Docker Compose, kind |
+| Kubernetes | DigitalOcean Kubernetes for live demo |
+| GitOps | Helm, Argo CD, Argo Rollouts |
+| Registry | GHCR |
+
+## Repository Structure
 
 ```text
 services/
-  todo-service/
   auth-service/
-  frontend/                 # React app, nginx.conf (Compose), Dockerfile
+  todo-service/
+  frontend/
 gitops/
   charts/
-    todo-service/
     auth-service/
-    frontend/               # values.kind-local.yaml (ClusterIP, kind); values.doks-public.yaml (LoadBalancer, DOKS)
+    todo-service/
+    frontend/
   argocd/
-    argo-rollouts-app.yaml  # Application: argo-rollouts (controller + CRDs)
-    todo-app.yaml           # Application: shipyard-todo-service (Rollout)
-    auth-app.yaml           # Application: shipyard-auth-service
-    frontend-app.yaml       # Application: shipyard-frontend
+    argo-rollouts-app.yaml
+    auth-app.yaml
+    todo-app.yaml
+    frontend-app.yaml
 .github/workflows/
 docker-compose.yml
-CONTEXT.md                  # extended project notes & timeline
+docs/
+CONTEXT.md
 ```
 
-## Stack (summary)
+## Services
 
-| Layer        | Technology                          |
-| ------------ | ----------------------------------- |
-| Frontend     | React 19, Vite 8, react-router-dom  |
-| Backend      | Go, Gin, GORM                       |
-| Database     | PostgreSQL 16                       |
-| Images       | Docker (multi-stage)                |
-| Cluster      | kind (local); DOKS on-demand portfolio demo — see [DOKS](#digitalocean-doks) |
-| GitOps       | Helm + ArgoCD + Argo Rollouts (todo canary) |
-| Registry     | GHCR                                |
-
-## Services & endpoints
-
-### `todo-service` (default port **8080**)
-
-- `GET /health`
-- `GET /api/v1/todos` — requires `Authorization: Bearer <JWT>`
-- `POST /api/v1/todos`
-- `PUT /api/v1/todos/:id`
-- `DELETE /api/v1/todos/:id`
-
-### `auth-service` (default port **8081**)
+### auth-service
 
 - `GET /health`
 - `POST /api/v1/register`
 - `POST /api/v1/login`
 
-### `frontend`
+### todo-service
 
-- **Docker Compose:** host port **3000** → container **80**; nginx proxies `/api/v1/*` to `auth-service:8081` and `todo-service:8080` on the Compose network.
-- **Vite dev:** `npm run dev` (see `services/frontend`); API proxy is configured in `vite.config.js`.
-- **Kubernetes:** chart mounts a **ConfigMap** with nginx config; set `upstream.*.host` in `gitops/charts/frontend/values.yaml` to match your backend **Service** names (defaults align with ArgoCD Application names: `shipyard-auth-service`, `shipyard-todo-service`).
+All todo routes require `Authorization: Bearer <JWT>`.
 
-## Local development (Docker Compose)
+- `GET /health`
+- `GET /api/v1/todos`
+- `POST /api/v1/todos`
+- `PUT /api/v1/todos/:id`
+- `DELETE /api/v1/todos/:id`
 
-Copy and adjust env files (root `.env` from `.env.example`, etc.), then:
+### frontend
+
+- Local Compose: host `3000` to container `80`.
+- Kubernetes: Service `shipyard-frontend`; nginx proxies API routes to
+  `shipyard-auth-service` and `shipyard-todo-service`.
+
+## Local Development
+
+Copy `.env.example` to `.env`, then set real values for PostgreSQL and
+`JWT_SECRET`.
 
 ```bash
 docker compose up --build
 ```
 
-Set a non-empty **`JWT_SECRET`** in `.env` so todo and auth agree on token signing (Compose warns if it is missing).
-
 Health checks:
 
 ```bash
-curl http://127.0.0.1:8080/health
 curl http://127.0.0.1:8081/health
+curl http://127.0.0.1:8080/health
 curl -I http://127.0.0.1:3000/
 ```
 
-Frontend-only (from `services/frontend`):
+Frontend-only development:
 
 ```bash
+cd services/frontend
 npm ci
 npm run dev
 ```
 
-## Kubernetes (kind) + ArgoCD (GitOps)
+## Kubernetes Deployment
 
-### Prereqs
+Prerequisites:
 
 - `kubectl`
-- `kind`
-- ArgoCD installed in the cluster (namespace: `argocd`)
+- `helm`
+- an Argo CD installation in namespace `argocd`
+- the `shipyard` namespace
+- PostgreSQL and service secrets
 
-### Deploy via ArgoCD Applications
-
-Apply the Applications (adjust `repoURL` in the manifests if you fork). **Sync `argo-rollouts` before `shipyard-todo-service`** so the `Rollout` CRD exists (or let Argo retry the todo app after the controller is healthy).
-
-```bash
-kubectl apply -f gitops/argocd/argo-rollouts-app.yaml
-kubectl -n argocd wait --for=jsonpath='{.status.health.status}'=Healthy application/argo-rollouts --timeout=300s
-kubectl apply -f gitops/argocd/
-```
-
-Then watch:
-
-```bash
-kubectl -n argocd get applications.argoproj.io
-kubectl -n shipyard get rollout,deploy,svc,pods
-```
-
-**Frontend + Argo health (kind):** `gitops/argocd/frontend-app.yaml` merges **`values.kind-local.yaml`** so the Service stays **ClusterIP**. That avoids Argo CD **Progressing** from a `LoadBalancer` with perpetual `<pending>` EXTERNAL-IP on kind. Open the UI with **`kubectl -n shipyard port-forward svc/shipyard-frontend 3000:80`**.
-
-### Argo Rollouts (todo-service canary)
-
-`gitops/charts/todo-service` deploys a **Rollout** (not a Deployment) with steps: **20% → pause (manual promote) → 50% → 100%**. Without a service mesh, weights are approximated via replica counts; the chart defaults to **2** replicas so a **single small node** (e.g. one DOKS worker) can still schedule todo + frontend + auth. Increase `replicaCount` in `values.yaml` on larger clusters if you want a finer canary split.
-
-Install the [kubectl argo rollouts plugin](https://argo-rollouts.readthedocs.io/en/stable/features/kubectl-plugin/), then after a new image tag syncs:
-
-```bash
-kubectl argo rollouts get rollout shipyard-todo-service -n shipyard --watch
-kubectl argo rollouts promote shipyard-todo-service -n shipyard
-```
-
-Use `kubectl argo rollouts undo shipyard-todo-service -n shipyard` if you need to abort.
-
-### Required secrets (namespace `shipyard`)
-
-Todo and auth charts load DB (and todo loads JWT) via `envFrom.secretRef`. **Use the same `JWT_SECRET` for both** `auth-service-secret` and `todo-service-secret`.
-
-```bash
-kubectl -n shipyard create secret generic todo-service-secret \
-  --from-literal=DB_HOST=postgres \
-  --from-literal=DB_USER=shipyard \
-  --from-literal=DB_PASSWORD=changeme \
-  --from-literal=DB_NAME=shipyard \
-  --from-literal=DB_PORT=5432 \
-  --from-literal=DB_SSLMODE=disable \
-  --from-literal=JWT_SECRET="replace-with-a-long-random-secret"
-
-kubectl -n shipyard create secret generic auth-service-secret \
-  --from-literal=DB_HOST=postgres \
-  --from-literal=DB_USER=shipyard \
-  --from-literal=DB_PASSWORD=changeme \
-  --from-literal=DB_NAME=shipyard \
-  --from-literal=DB_PORT=5432 \
-  --from-literal=DB_SSLMODE=disable \
-  --from-literal=JWT_SECRET="replace-with-a-long-random-secret"
-```
-
-### Test on the cluster (port-forward)
-
-```bash
-kubectl -n shipyard port-forward svc/shipyard-frontend 3000:80
-kubectl -n shipyard port-forward svc/shipyard-auth-service 8081:8081
-kubectl -n shipyard port-forward svc/shipyard-todo-service 8080:8080
-```
-
-Then open `http://127.0.0.1:3000` or hit the APIs directly, for example:
-
-```bash
-curl http://127.0.0.1:8081/health
-curl http://127.0.0.1:8080/health
-```
-
-## DigitalOcean DOKS
-
-ส่วนนี้เป็นคู่มือติดตั้งและดูแล **DigitalOcean Kubernetes** สำหรับ portfolio live demo แบบ on-demand — demo ปัจจุบันอยู่ที่ [https://shipyard.skyshine.online](https://shipyard.skyshine.online)
-
-ใช้ขั้นตอนด้านล่างเมื่อมี DOKS และ `kubectl` / `doctl kubeconfig save` ใช้งานได้แล้ว
-
-### 1. ติดตั้ง Argo CD
-
-```bash
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl -n argocd rollout status deploy/argocd-server --timeout=300s
-```
-
-รหัสผ่าน admin เริ่มต้น (user **`admin`**):
-
-```bash
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-```
-
-บน **PowerShell**:
-
-```powershell
-[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String((kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}')))
-```
-
-เข้า UI แบบเร็ว: port-forward
-
-```bash
-kubectl -n argocd port-forward svc/argocd-server 8080:443
-```
-
-แล้วเปิด `https://127.0.0.1:8080` (ยอมรับ self-signed cert)
-
-**หรือ** ให้ DO สร้าง Load Balancer สำหรับ UI:
-
-```bash
-kubectl patch svc argocd-server -n argocd -p '{"spec":{"type":"LoadBalancer"}}'
-kubectl -n argocd get svc argocd-server
-```
-
-รอจนได้ **EXTERNAL-IP** แล้วเข้า `https://<EXTERNAL-IP>` (Argo CD ใช้ TLS บน server อยู่แล้ว)
-
-### 2. Namespace และ PostgreSQL
-
-สร้าง namespace สำหรับแอปและฐานข้อมูล:
-
-```bash
-kubectl create namespace shipyard
-```
-
-**ตัวเลือก A — PostgreSQL ใน cluster (เหมาะกับ demo):** ใช้ Helm + Bitnami แล้วตั้งชื่อ Service เป็น `postgres` ให้ตรงกับตัวอย่าง secret ด้านล่าง
-
-```bash
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
-helm install postgres bitnami/postgresql -n shipyard \
-  --set fullnameOverride=postgres \
-  --set auth.username=shipyard \
-  --set auth.password='changeme' \
-  --set auth.database=shipyard
-```
-
-รอจน `kubectl -n shipyard get pods` แสดง Postgres **Running** ก่อนสร้าง secret และ sync แอป
-
-**ตัวเลือก B — DO Managed Database:** สร้าง Postgres ในเมนู **Databases** แล้วใส่ `DB_HOST` / `DB_PORT` / `DB_SSLMODE=require` (และ user/password/db name) ใน secret ให้ตรงค่าที่ DO ให้
-
-### 3. Secrets (`shipyard`) และ GHCR (ถ้า image เป็น private)
-
-สร้าง secret แอป (แก้รหัสผ่านและ `JWT_SECRET`):
-
-```bash
-kubectl -n shipyard create secret generic todo-service-secret \
-  --from-literal=DB_HOST=postgres \
-  --from-literal=DB_USER=shipyard \
-  --from-literal=DB_PASSWORD=changeme \
-  --from-literal=DB_NAME=shipyard \
-  --from-literal=DB_PORT=5432 \
-  --from-literal=DB_SSLMODE=disable \
-  --from-literal=JWT_SECRET="replace-with-a-long-random-secret"
-
-kubectl -n shipyard create secret generic auth-service-secret \
-  --from-literal=DB_HOST=postgres \
-  --from-literal=DB_USER=shipyard \
-  --from-literal=DB_PASSWORD=changeme \
-  --from-literal=DB_NAME=shipyard \
-  --from-literal=DB_PORT=5432 \
-  --from-literal=DB_SSLMODE=disable \
-  --from-literal=JWT_SECRET="replace-with-a-long-random-secret"
-```
-
-ถ้า GHCR **private** ให้สร้าง pull secret (ใช้ GitHub username + PAT ที่มี `read:packages`):
-
-```bash
-kubectl -n shipyard create secret docker-registry ghcr-pull \
-  --docker-server=ghcr.io \
-  --docker-username=YOUR_GITHUB_USER \
-  --docker-password=YOUR_GITHUB_PAT \
-  --docker-email=you@example.com
-```
-
-จากนั้นใน `gitops/charts/{todo-service,auth-service,frontend}/values.yaml` ตั้ง `imagePullSecrets: [{ name: ghcr-pull }]` (หรือ override ผ่าน Argo CD UI → Parameters) แล้ว commit — หรือใช้ **public** package บน GHCR เพื่อไม่ต้องมี secret
-
-### 4. ลง GitOps apps (ลำดับสำคัญ)
-
-จากราก repo (หรือ path ที่มี `gitops/argocd/`):
+Install Argo Rollouts first because `todo-service` uses the `Rollout` CRD:
 
 ```bash
 kubectl apply -f gitops/argocd/argo-rollouts-app.yaml
@@ -336,71 +158,105 @@ kubectl -n argocd wait --for=jsonpath='{.status.health.status}'=Healthy applicat
 kubectl apply -f gitops/argocd/
 ```
 
-ตรวจสอบ:
+Check status:
 
 ```bash
 kubectl -n argocd get applications.argoproj.io
-kubectl -n shipyard get rollout,deploy,svc,pods
+kubectl -n shipyard get rollout,deploy,svc,pods,pvc
 ```
 
-ถ้าแอปติด **OutOfSync / Unknown** ให้เปิด Argo CD UI → Sync หรือ hard refresh ตาม [Troubleshooting](#argocd-shows-unknown)
+## Required Secrets
 
-### 5. URL สาธารณะ (DOKS)
-
-ค่าเริ่มต้นใน repo: **`gitops/argocd/frontend-app.yaml`** ใช้ **`values.kind-local.yaml`** (`service.type: ClusterIP`) เหมาะกับ **kind / cluster ที่ไม่มี cloud LB** — Argo CD จะไม่ค้าง **Progressing** เพราะ LoadBalancer ไม่มี **EXTERNAL-IP**
-
-**เมื่อ deploy บน DigitalOcean Kubernetes** และต้องการ **Load Balancer + IP สาธารณะ** ให้แก้ `helm.valueFiles` ใน `gitops/argocd/frontend-app.yaml` จาก `values.kind-local.yaml` เป็น **`values.doks-public.yaml`** แล้ว commit (หรือแก้ใน Argo CD UI → App details → Parameters / manifest แล้ว Sync):
-
-```yaml
-      valueFiles:
-        - values.yaml
-        - values.doks-public.yaml
-```
-
-หลัง sync แล้ว DigitalOcean จะสร้าง LB และได้ **EXTERNAL-IP**:
+Both backend services read database settings and `JWT_SECRET` from Kubernetes
+Secrets. Use the same `JWT_SECRET` for auth and todo.
 
 ```bash
-kubectl -n shipyard get svc shipyard-frontend
+kubectl -n shipyard create secret generic auth-service-secret \
+  --from-literal=DB_HOST=postgres \
+  --from-literal=DB_USER=shipyard \
+  --from-literal=DB_PASSWORD=changeme \
+  --from-literal=DB_NAME=shipyard \
+  --from-literal=DB_PORT=5432 \
+  --from-literal=DB_SSLMODE=disable \
+  --from-literal=JWT_SECRET="replace-with-a-long-random-secret"
+
+kubectl -n shipyard create secret generic todo-service-secret \
+  --from-literal=DB_HOST=postgres \
+  --from-literal=DB_USER=shipyard \
+  --from-literal=DB_PASSWORD=changeme \
+  --from-literal=DB_NAME=shipyard \
+  --from-literal=DB_PORT=5432 \
+  --from-literal=DB_SSLMODE=disable \
+  --from-literal=JWT_SECRET="replace-with-a-long-random-secret"
 ```
 
-รอจน **`EXTERNAL-IP`** ไม่เป็น `<pending>` แล้วเปิดเบราว์เซอร์:
+## Origin TLS
 
-- **`http://<EXTERNAL-IP>/`** — public URL (HTTP) **ไม่ต้องมีโดเมน**
+The live demo uses Cloudflare in front of the DigitalOcean Load Balancer. The
+frontend chart supports origin TLS by mounting a Kubernetes TLS secret into the
+nginx container and exposing service port `443`.
 
-ถ้ามี **โดเมน** (ไม่บังคับ): สร้าง DNS **A record** ชี้ไปที่ IP นั้น แล้วใช้ `http://ชื่อโดเมน/`
+Create or update the TLS secret from a Cloudflare Origin Certificate:
 
-**HTTPS:** ต้องมี **โดเมน** (Let’s Encrypt ไม่ออก cert ให้ “แค่ IP” แบบทั่วไป) จากนั้นติด **Ingress Controller** + **cert-manager** แล้วเปิด `ingress.enabled` / TLS ใน chart ตามคู่มือ [DO + Ingress](https://docs.digitalocean.com/products/kubernetes/how-to/configure-load-balancers/) / [nginx ingress](https://kubernetes.github.io/ingress-nginx/deploy/#digital-ocean) — ใช้เวลาตั้งค่ามากกว่า **LoadBalancer + HTTP** พอสมควร; ถ้ายังไม่จำเป็นให้ใช้ demo แบบ HTTP ด้านบนก่อน
+```powershell
+kubectl -n shipyard create secret tls shipyard-origin-tls --cert=.secrets/shipyard-origin.pem --key=.secrets/shipyard-origin-key.pem --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n shipyard rollout restart deployment/shipyard-frontend
+kubectl -n shipyard rollout status deployment/shipyard-frontend --timeout=300s
+```
 
-**บน kind (local):** ใช้ **`kubectl -n shipyard port-forward svc/shipyard-frontend 3000:80`** — ไม่ต้องมี MetalLB
+Do not commit `.secrets/` or any private key material.
 
-### DOKS: Pod ค้าง `Pending` / Argo CD `Degraded` — `Insufficient cpu`
+## Argo Rollouts
 
-ถ้า `kubectl describe pod ...` ใน Events มี **`Insufficient cpu`**: node เดียวไม่พอรับ **หลาย replica** (เดิม todo ตั้ง 5 ตัว + frontend + auth + Postgres + Argo CD)
+`todo-service` uses Argo Rollouts for progressive delivery. The default rollout
+steps are:
 
-- แก้ใน repo: ลด `replicaCount` ใน `gitops/charts/todo-service/values.yaml` (ค่าเริ่มต้นปัจจุบันตั้งให้เหมาะกับ cluster เล็กแล้ว) แล้ว push ให้ GitOps sync  
-- หรือเพิ่มขนาด/จำนวน node ใน DOKS
+```text
+20% -> pause for manual promotion -> 50% -> 100%
+```
 
-## CI/CD (GitHub Actions)
+Common commands:
 
-On pushes to **`main`** (path-filtered per service), workflows:
+```bash
+kubectl argo rollouts get rollout shipyard-todo-service -n shipyard --watch
+kubectl argo rollouts promote shipyard-todo-service -n shipyard
+kubectl argo rollouts undo shipyard-todo-service -n shipyard
+```
 
-- build the Docker image for that service
-- push to **GHCR** (`ghcr.io/<owner>/shipyard-<service>`)
-- commit an update to `gitops/charts/<service>/values.yaml` (`image.tag`, `[skip ci]`)
+If Argo CD reports `Suspended` for `shipyard-todo-service`, the rollout is
+usually paused at the manual canary step, not broken.
 
-ArgoCD picks up the Git change and syncs the cluster.
+## CI/CD
 
-| Workflow        | Paths (among others)                          |
-| --------------- | ---------------------------------------------- |
-| `ci-todo.yml`   | `services/todo-service/**`, chart todo         |
-| `ci-auth.yml`   | `services/auth-service/**`, chart auth         |
-| `ci-frontend.yml` | `services/frontend/**`, chart frontend       |
+Each service has a path-filtered GitHub Actions workflow:
+
+| Workflow | Scope |
+| --- | --- |
+| `ci-auth.yml` | `services/auth-service/**`, auth chart |
+| `ci-todo.yml` | `services/todo-service/**`, todo chart |
+| `ci-frontend.yml` | `services/frontend/**`, frontend chart |
+
+The workflow builds a Docker image, pushes it to GHCR, updates the matching Helm
+chart `image.tag`, and commits that GitOps change back to `main`.
 
 ## Troubleshooting
 
-### `ImagePullBackOff` / `ErrImagePull`
+### Pods stuck in Pending with `Insufficient cpu`
 
-- Image name/tag wrong or tag not yet in GHCR; confirm the Deployment image:
+The live demo is intentionally cost-conscious. On a small one-node cluster, keep
+resource requests and replica counts low, or scale the node pool up temporarily.
+
+### Frontend API proxy does not reach the backend
+
+Check that the frontend chart `upstream.auth.host` and `upstream.todo.host`
+match the Kubernetes Service names:
+
+- `shipyard-auth-service`
+- `shipyard-todo-service`
+
+### ImagePullBackOff
+
+Confirm the rendered images and tags:
 
 ```bash
 kubectl -n shipyard get deploy shipyard-auth-service -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
@@ -408,41 +264,7 @@ kubectl -n shipyard get rollout shipyard-todo-service -o jsonpath="{.spec.templa
 kubectl -n shipyard get deploy shipyard-frontend -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
 ```
 
-### `CreateContainerConfigError`
-
-- Often missing secrets or volume/security context issues:
-
-```bash
-kubectl -n shipyard describe pod <pod-name>
-```
-
-### Frontend API proxy fails in Kubernetes
-
-- Ensure `gitops/charts/frontend/values.yaml` → `upstream.auth.host` / `upstream.todo.host` match the **Service** names of auth and todo in `shipyard` (defaults: `shipyard-auth-service`, `shipyard-todo-service`).
-
-### Frontend `CrashLoopBackOff` — nginx `chown` / `setgid(101) Operation not permitted`
-
-Official nginx drops to user `101` in workers; with `capabilities.drop: ALL` add **`NET_BIND_SERVICE`**, **`CHOWN`**, **`SETUID`**, **`SETGID`**. The chart `values.yaml` includes these — sync the latest `shipyard-frontend` Application.
-
-### DOKS: รีเซ็ตเฉพาะแอปใน `shipyard` (ข้อมูล Postgres หาย)
-
-ถ้าอยากเริ่มติดตั้งแอปใหม่โดยไม่ลบ Argo CD:
-
-```bash
-kubectl delete namespace shipyard
-kubectl create namespace shipyard
-# ติดตั้ง Postgres + secrets ตามหัวข้อ DigitalOcean DOKS แล้ว apply gitops/argocd/ อีกครั้ง (หรือ Sync ใน Argo CD)
-```
-
-ถ้าจะลบทั้ง Argo CD ด้วย: `kubectl delete namespace argocd` แล้วติดตั้ง Argo CD + Rollouts + Applications ตาม README
-
-### Argo CD: `shipyard-todo-service` shows **Suspended**
-
-Often the **Rollout** is paused on a **canary step** (`CanaryPauseStep`), not “sync suspended.” Check: `kubectl -n shipyard get rollout shipyard-todo-service -o jsonpath='{.status.pauseConditions}'`. Continue with [kubectl argo rollouts plugin](https://argo-rollouts.readthedocs.io/en/stable/features/kubectl-plugin/): `kubectl argo rollouts promote shipyard-todo-service -n shipyard`.
-
-### ArgoCD shows `Unknown`
-
-- Hard refresh:
+### Hard-refresh Argo CD Applications
 
 ```bash
 kubectl -n argocd annotate application shipyard-auth-service argocd.argoproj.io/refresh=hard --overwrite
@@ -450,11 +272,13 @@ kubectl -n argocd annotate application shipyard-todo-service argocd.argoproj.io/
 kubectl -n argocd annotate application shipyard-frontend argocd.argoproj.io/refresh=hard --overwrite
 ```
 
-## Conventions (short)
+## Conventions
 
-- **K8s namespace:** `shipyard`
-- **ArgoCD app names:** `shipyard-todo-service`, `shipyard-auth-service`, `shipyard-frontend`
-- **Images:** `ghcr.io/<github-username-lowercase>/shipyard-{todo-service,auth-service,frontend}:<tag>`
-- **GitOps branch:** `main`
+- Kubernetes namespace: `shipyard`
+- Argo CD app names: `shipyard-auth-service`, `shipyard-todo-service`,
+  `shipyard-frontend`
+- Images: `ghcr.io/skyshineth/shipyard-{auth-service,todo-service,frontend}:<tag>`
+- GitOps branch: `main`
 
-See [CONTEXT.md](./CONTEXT.md) for timeline, conventions, and detailed notes.
+See [CONTEXT.md](CONTEXT.md) for project context and
+[docs/doks-live-demo.md](docs/doks-live-demo.md) for the live demo case study.
