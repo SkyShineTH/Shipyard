@@ -1,0 +1,6 @@
+.git
+.gitignore
+platform-status-service
+*.exe
+*.test
+coverage.out

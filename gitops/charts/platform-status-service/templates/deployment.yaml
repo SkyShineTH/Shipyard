@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "platform-status-service.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "platform-status-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "platform-status-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "platform-status-service.selectorLabels" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: {{ .Values.automountServiceAccountToken }}
+      serviceAccountName: {{ include "platform-status-service.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: platform-status-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.env.PORT | quote }}
+            - name: SHIPYARD_NAMESPACE
+              value: {{ .Values.env.SHIPYARD_NAMESPACE | quote }}
+            - name: ARGOCD_NAMESPACE
+              value: {{ .Values.env.ARGOCD_NAMESPACE | quote }}
+            - name: CLUSTER_PROVIDER
+              value: {{ .Values.env.CLUSTER_PROVIDER | quote }}
+            - name: CLUSTER_REGION
+              value: {{ .Values.env.CLUSTER_REGION | quote }}
+            - name: CLUSTER_MODE
+              value: {{ .Values.env.CLUSTER_MODE | quote }}
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 20
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

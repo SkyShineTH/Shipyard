@@ -3,6 +3,7 @@ import ParallaxBackground from './components/ParallaxBackground'
 import { useAuth } from './context/authContext'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
+import CaseStudy from './pages/CaseStudy'
 import Register from './pages/Register'
 import Todos from './pages/Todos'
 
@@ -20,6 +21,9 @@ function Layout() {
           <nav className="nav">
             <NavLink to="/todos" className="nav-link">
               Todos
+            </NavLink>
+            <NavLink to="/case-study" className="nav-link">
+              Case Study
             </NavLink>
             {isAuthenticated ? (
               <button type="button" className="btn ghost" onClick={logout}>
@@ -47,6 +51,7 @@ function Layout() {
               </main>
             }
           />
+          <Route path="/case-study" element={<CaseStudy />} />
           <Route path="/todos" element={<Todos />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

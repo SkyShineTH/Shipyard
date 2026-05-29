@@ -1,0 +1,63 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "platform-status-service.fullname" . }}-reader
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "platform-status-service.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["rollouts"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "platform-status-service.fullname" . }}-reader
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "platform-status-service.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "platform-status-service.serviceAccountName" . }}
+    namespace: {{ .Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "platform-status-service.fullname" . }}-reader
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "platform-status-service.fullname" . }}-argocd-reader
+  namespace: {{ .Values.rbac.argocdNamespace }}
+  labels:
+    {{- include "platform-status-service.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "platform-status-service.fullname" . }}-argocd-reader
+  namespace: {{ .Values.rbac.argocdNamespace }}
+  labels:
+    {{- include "platform-status-service.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "platform-status-service.serviceAccountName" . }}
+    namespace: {{ .Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "platform-status-service.fullname" . }}-argocd-reader
+{{- end }}

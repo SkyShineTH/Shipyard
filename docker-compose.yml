@@ -60,6 +60,21 @@ services:
       postgres:
         condition: service_healthy
 
+  platform-status-service:
+    build:
+      context: ./services/platform-status-service
+      dockerfile: Dockerfile
+    container_name: shipyard-platform-status-service
+    environment:
+      PORT: "8082"
+      SHIPYARD_NAMESPACE: shipyard
+      ARGOCD_NAMESPACE: argocd
+      CLUSTER_PROVIDER: DigitalOcean Kubernetes
+      CLUSTER_REGION: sgp1
+      CLUSTER_MODE: local fallback
+    ports:
+      - "8082:8082"
+
   frontend:
     build:
       context: ./services/frontend
@@ -70,6 +85,7 @@ services:
     depends_on:
       - todo-service
       - auth-service
+      - platform-status-service
 
 volumes:
   postgres_data:

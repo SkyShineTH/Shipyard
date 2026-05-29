@@ -1,0 +1,6 @@
+apiVersion: v2
+name: platform-status-service
+description: Read-only Shipyard infrastructure snapshot API
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

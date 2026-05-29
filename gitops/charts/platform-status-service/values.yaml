@@ -1,0 +1,62 @@
+# Default values for platform-status-service.
+# This service exposes a sanitized, read-only infrastructure snapshot for the
+# public case-study page.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/skyshineth/shipyard-platform-status-service
+  pullPolicy: IfNotPresent
+  # Overwritten by GitHub Actions CI on each push
+  tag: "latest"
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+
+# This service needs a Kubernetes API token, but RBAC below grants read-only
+# access to a small set of safe resources.
+automountServiceAccountToken: true
+
+rbac:
+  create: true
+  argocdNamespace: argocd
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8082
+
+resources:
+  requests:
+    cpu: "5m"
+    memory: "48Mi"
+  limits:
+    cpu: "100m"
+    memory: "128Mi"
+
+env:
+  PORT: "8082"
+  SHIPYARD_NAMESPACE: shipyard
+  ARGOCD_NAMESPACE: argocd
+  CLUSTER_PROVIDER: DigitalOcean Kubernetes
+  CLUSTER_REGION: sgp1
+  CLUSTER_MODE: cost-conscious demo
+
+namespace: shipyard

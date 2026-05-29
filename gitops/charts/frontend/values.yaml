@@ -80,5 +80,8 @@ upstream:
   todo:
     host: shipyard-todo-service
     port: 8080
+  platform:
+    host: shipyard-platform-status
+    port: 8082
 
 namespace: shipyard

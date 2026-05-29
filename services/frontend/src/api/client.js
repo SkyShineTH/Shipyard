@@ -72,3 +72,7 @@ export async function updateTodo(id, patch, token) {
 export async function deleteTodo(id, token) {
   return apiFetch(`/api/v1/todos/${id}`, { method: 'DELETE', token })
 }
+
+export async function getPlatformStatus() {
+  return apiFetch('/api/v1/platform/status')
+}
