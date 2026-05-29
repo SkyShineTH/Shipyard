@@ -33,6 +33,16 @@ jobs:
           git checkout main
           git reset --hard origin/main
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: services/todo-service/go.mod
+          cache-dependency-path: services/todo-service/go.sum
+
+      - name: Run tests
+        working-directory: services/todo-service
+        run: go test ./...
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
