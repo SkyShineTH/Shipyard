@@ -30,6 +30,7 @@ GitOps workflow.
 | CI/CD | GitHub Actions |
 | Registry | GHCR |
 | Public edge | Cloudflare, DigitalOcean Load Balancer |
+| Observability | Prometheus, Grafana, ServiceMonitors |
 
 ## Services
 
@@ -63,11 +64,19 @@ GitOps workflow.
 ### platform-status-service
 
 - Go/Gin service for the `/api/v1/platform/status` endpoint.
+- Exposes Prometheus metrics at `/metrics`.
 - Uses an in-cluster Kubernetes ServiceAccount with read-only RBAC.
 - Reads only public-safe resource status from the `shipyard` and `argocd`
   namespaces.
 - Sanitizes output so public visitors do not see secrets, tokens, pod IPs, node
   names, kubeconfig, database connection strings, or Argo CD credentials.
+
+### monitoring
+
+- Optional on-demand stack based on `kube-prometheus-stack`.
+- Grafana and Prometheus remain private `ClusterIP` services.
+- Shipyard services are scraped through ServiceMonitor resources.
+- Custom Grafana dashboard: `Shipyard HTTP Overview`.
 
 ## GitOps Flow
 
@@ -79,6 +88,8 @@ GitOps workflow.
 6. Argo Rollouts manages the `todo-service` rollout strategy.
 7. The `/case-study` page reads a sanitized infrastructure snapshot from
    `platform-status-service`.
+8. Optional monitoring scrapes `/metrics` endpoints for demo screenshots and
+   interview evidence.
 
 ## Live Demo Environment
 
@@ -102,6 +113,7 @@ The demo is intentionally tuned for cost control:
 - one platform-status-service replica for the public read-only snapshot
 - reduced CPU requests for app pods
 - no high-availability control plane
+- monitoring stack is installed only when observability evidence is needed
 
 ## Evidence Commands
 
@@ -113,6 +125,8 @@ kubectl -n shipyard get pods,svc,pvc -o wide
 kubectl -n shipyard get rollout shipyard-todo-service
 curl -I https://shipyard.skyshine.online/
 curl -s https://shipyard.skyshine.online/api/v1/platform/status
+kubectl -n shipyard get servicemonitor
+kubectl -n monitoring get pods,svc
 ```
 
 Do not publish output that contains API tokens, database passwords, JWT secrets,
@@ -125,6 +139,9 @@ kubeconfig content, Cloudflare private keys, or GitHub PATs.
 - Added Helm charts for auth, todo, and frontend.
 - Added `platform-status-service` for a sanitized public Kubernetes/GitOps
   snapshot.
+- Added Prometheus metrics endpoints to the Go services.
+- Added optional Prometheus/Grafana monitoring for private observability
+  evidence.
 - Added Argo CD Application manifests.
 - Added GitHub Actions workflows for image build, GHCR push, and chart tag bump.
 - Added React/Vite frontend and nginx production serving.
@@ -145,3 +162,5 @@ kubeconfig content, Cloudflare private keys, or GitHub PATs.
 - If pods are stuck in `Pending` with `Insufficient cpu`, either lower requests
   for the demo or temporarily scale the node pool up.
 - Scale the demo down when it is not needed; see `docs/cost-control.md`.
+- Install monitoring only for demos/screenshots, then remove it when finished;
+  see `docs/monitoring.md`.

@@ -20,6 +20,8 @@ workflow while keeping cloud cost controlled.
 - Go microservices for authentication and todo APIs.
 - A read-only `platform-status-service` that powers the public infrastructure
   snapshot on `/case-study`.
+- Prometheus metrics on Go services and an optional private Grafana dashboard
+  for observability evidence.
 - PostgreSQL running in the cluster with a DigitalOcean Block Storage PVC.
 - Helm charts for frontend, auth-service, todo-service, and
   platform-status-service.
@@ -38,6 +40,7 @@ User
   -> /api/v1/todos -> todo-service
   -> /api/v1/platform/status -> platform-status-service
   -> Kubernetes API and Argo CD Applications through read-only RBAC
+  -> /metrics -> Prometheus ServiceMonitors when monitoring is enabled
   -> PostgreSQL
 ```
 
@@ -51,6 +54,7 @@ GitHub Actions
   -> Argo CD syncs the target cluster
   -> Argo Rollouts controls todo-service rollout promotion
   -> platform-status-service serves sanitized public status for /case-study
+  -> optional monitoring stack scrapes service metrics for Grafana screenshots
 ```
 
 ## Current Proof Commands
@@ -92,6 +96,8 @@ Additional useful screenshots for portfolio proof:
 - `kubectl -n shipyard get pods,svc,pvc -o wide` output.
 - `/case-study` live infrastructure snapshot showing sanitized workload,
   service, storage, and GitOps status.
+- Grafana `Shipyard HTTP Overview` dashboard captured through local
+  port-forward access.
 
 Do not publish screenshots that expose API tokens, JWT secrets, database
 passwords, kubeconfig contents, GitHub PATs, or private TLS keys.

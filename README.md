@@ -22,6 +22,8 @@ canary-style promotion workflow in Kubernetes.
   secret.
 - Cost model: small on-demand portfolio environment. See
   [docs/cost-control.md](docs/cost-control.md).
+- Monitoring: private Prometheus/Grafana stack for on-demand evidence. See
+  [docs/monitoring.md](docs/monitoring.md).
 - Evidence case study: [docs/doks-live-demo.md](docs/doks-live-demo.md).
 
 ## Architecture
@@ -34,6 +36,10 @@ canary-style promotion workflow in Kubernetes.
   an Argo Rollouts `Rollout`.
 - `platform-status-service`: Go/Gin API that exposes a sanitized, read-only
   Kubernetes/GitOps snapshot for the public case-study page.
+- `shipyard-monitoring`: on-demand Prometheus/Grafana stack for private
+  observability evidence.
+- `shipyard-observability`: ServiceMonitors and a custom Grafana dashboard for
+  Shipyard metrics.
 - `postgres`: PostgreSQL persistence.
 - `gitops/charts/*`: Helm charts for all services.
 - `gitops/argocd/*`: Argo CD Application manifests.
@@ -50,6 +56,10 @@ flowchart LR
   fe --> platform[platform-status-service]
   platform --> kube[Kubernetes API read-only]
   platform --> apps[Argo CD Applications read-only]
+  prometheus[Prometheus private] --> auth
+  prometheus --> todo
+  prometheus --> platform
+  grafana[Grafana private] --> prometheus
   auth --> db[(PostgreSQL)]
   todo --> db
 
@@ -90,12 +100,15 @@ gitops/
     todo-service/
     platform-status-service/
     frontend/
+    shipyard-observability/
   argocd/
     argo-rollouts-app.yaml
     auth-app.yaml
     todo-app.yaml
     platform-status-app.yaml
     frontend-app.yaml
+    monitoring-app.yaml
+    shipyard-observability-app.yaml
 .github/workflows/
 docker-compose.yml
 docs/
@@ -107,6 +120,7 @@ CONTEXT.md
 ### auth-service
 
 - `GET /health`
+- `GET /metrics`
 - `POST /api/v1/register`
 - `POST /api/v1/login`
 
@@ -115,6 +129,7 @@ CONTEXT.md
 All todo routes require `Authorization: Bearer <JWT>`.
 
 - `GET /health`
+- `GET /metrics`
 - `GET /api/v1/todos`
 - `POST /api/v1/todos`
 - `PUT /api/v1/todos/:id`
@@ -132,9 +147,17 @@ All todo routes require `Authorization: Bearer <JWT>`.
 
 - `GET /health`
 - `GET /api/v1/platform/status`
+- `GET /metrics`
 - Uses read-only Kubernetes RBAC and returns sanitized public evidence only.
 - Does not return secrets, kubeconfig, service account tokens, pod IPs, node
   names, database connection strings, or Argo CD credentials.
+
+### Metrics
+
+- `auth-service`, `todo-service`, and `platform-status-service` expose
+  Prometheus metrics at `/metrics`.
+- Grafana is private by default and should be opened with `kubectl port-forward`.
+- Monitoring is optional and intended for on-demand portfolio evidence.
 
 ## Local Development
 
@@ -308,3 +331,5 @@ kubectl -n argocd annotate application shipyard-frontend argocd.argoproj.io/refr
 
 See [CONTEXT.md](CONTEXT.md) for project context and
 [docs/doks-live-demo.md](docs/doks-live-demo.md) for the live demo case study.
+See [docs/monitoring.md](docs/monitoring.md) for the on-demand monitoring
+workflow.

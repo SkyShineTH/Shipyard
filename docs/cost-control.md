@@ -13,6 +13,14 @@ The live DOKS demo currently uses:
 - 1 DigitalOcean Block Storage PVC for PostgreSQL.
 - Cloudflare DNS/TLS in front of the public hostname.
 
+Optional monitoring resources are installed only for demos or screenshots:
+
+- Prometheus Operator
+- Prometheus
+- Grafana
+- kube-state-metrics
+- node-exporter
+
 ## Why The Demo Uses One Node
 
 The first deployment hit `Insufficient cpu` on the small shared-CPU node. Instead
@@ -28,6 +36,9 @@ of scaling out immediately, the demo was tuned to fit the portfolio workload:
 This tradeoff is intentional: it keeps the environment inexpensive while still
 showing Kubernetes, Helm, Argo CD, Argo Rollouts, GHCR, and DOKS in one working
 system.
+
+Monitoring is kept on-demand because Prometheus and Grafana add CPU and memory
+pressure to the small demo node.
 
 ## Scale Down After Demo
 
@@ -69,3 +80,13 @@ If `todo-service` is paused on an Argo Rollouts canary step, promote it:
 ```powershell
 kubectl argo rollouts promote shipyard-todo-service -n shipyard
 ```
+
+## Remove Monitoring After Screenshots
+
+```powershell
+kubectl -n argocd delete application shipyard-observability
+kubectl -n argocd delete application shipyard-monitoring
+```
+
+The monitoring Application manifests include Argo CD resource finalizers so the
+managed monitoring resources are pruned when the Applications are deleted.
