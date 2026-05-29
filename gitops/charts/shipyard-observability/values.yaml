@@ -1,0 +1,23 @@
+serviceMonitor:
+  namespace: shipyard
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    shipyard.skyshine.online/monitoring: "true"
+  services:
+    - name: shipyard-auth-service
+      displayName: auth-service
+      port: http
+    - name: shipyard-todo-service
+      displayName: todo-service
+      port: http
+    - name: shipyard-platform-status
+      displayName: platform-status-service
+      port: http
+
+grafanaDashboard:
+  enabled: true
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"

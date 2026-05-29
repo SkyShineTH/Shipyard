@@ -1,0 +1,146 @@
+{{- if .Values.grafanaDashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shipyard-http-overview-dashboard
+  namespace: {{ .Values.grafanaDashboard.namespace }}
+  labels:
+    {{- include "shipyard-observability.labels" . | nindent 4 }}
+    {{- toYaml .Values.grafanaDashboard.labels | nindent 4 }}
+data:
+  shipyard-http-overview.json: |
+    {
+      "uid": "shipyard-http-overview",
+      "title": "Shipyard HTTP Overview",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "tags": ["shipyard", "portfolio", "kubernetes"],
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "HTTP request rate",
+          "id": 1,
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(shipyard_auth_service_http_requests_total[5m]))",
+              "legendFormat": "auth-service"
+            },
+            {
+              "expr": "sum(rate(shipyard_todo_service_http_requests_total[5m]))",
+              "legendFormat": "todo-service"
+            },
+            {
+              "expr": "sum(rate(shipyard_platform_status_service_http_requests_total[5m]))",
+              "legendFormat": "platform-status-service"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "none" }
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "p95 request latency",
+          "id": 2,
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(shipyard_auth_service_http_request_duration_seconds_bucket[5m])))",
+              "legendFormat": "auth-service"
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(shipyard_todo_service_http_request_duration_seconds_bucket[5m])))",
+              "legendFormat": "todo-service"
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(shipyard_platform_status_service_http_request_duration_seconds_bucket[5m])))",
+              "legendFormat": "platform-status-service"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "none" }
+          }
+        },
+        {
+          "type": "stat",
+          "title": "5xx responses in the last 5 minutes",
+          "id": 3,
+          "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum(increase({__name__=~\"shipyard_.*_http_requests_total\",status=~\"5..\"}[5m]))",
+              "legendFormat": "5xx"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "auto",
+            "textMode": "auto",
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto"
+          }
+        },
+        {
+          "type": "timeseries",
+          "title": "Shipyard pod CPU",
+          "id": 4,
+          "gridPos": { "h": 6, "w": 16, "x": 8, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"shipyard\",container!=\"\",pod=~\"shipyard-.*|postgres-.*\"}[5m]))",
+              "legendFormat": "{{ "{{pod}}" }}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "cores"
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": { "displayMode": "list", "placement": "bottom" },
+            "tooltip": { "mode": "multi", "sort": "none" }
+          }
+        }
+      ]
+    }
+{{- end }}
