@@ -10,10 +10,12 @@ canary-style promotion workflow in Kubernetes.
 [![CI todo-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-todo.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-todo.yml)
 [![CI auth-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml)
 [![CI frontend](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml)
+[![CI platform-status-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-platform-status.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-platform-status.yml)
 
 ## Live Demo
 
 - Demo: <https://shipyard.skyshine.online>
+- Case study: <https://shipyard.skyshine.online/case-study>
 - Runtime: DigitalOcean Kubernetes, Argo CD, Argo Rollouts, Helm, PostgreSQL,
   and a DigitalOcean Load Balancer.
 - TLS: Cloudflare proxy with origin HTTPS enabled through a Kubernetes TLS
@@ -30,6 +32,8 @@ canary-style promotion workflow in Kubernetes.
   and JWT signing.
 - `todo-service`: Go/Gin API for authenticated todo CRUD operations. Deployed as
   an Argo Rollouts `Rollout`.
+- `platform-status-service`: Go/Gin API that exposes a sanitized, read-only
+  Kubernetes/GitOps snapshot for the public case-study page.
 - `postgres`: PostgreSQL persistence.
 - `gitops/charts/*`: Helm charts for all services.
 - `gitops/argocd/*`: Argo CD Application manifests.
@@ -43,6 +47,9 @@ flowchart LR
   lb --> fe[frontend nginx]
   fe --> auth[auth-service]
   fe --> todo[todo-service Rollout]
+  fe --> platform[platform-status-service]
+  platform --> kube[Kubernetes API read-only]
+  platform --> apps[Argo CD Applications read-only]
   auth --> db[(PostgreSQL)]
   todo --> db
 
@@ -52,6 +59,7 @@ flowchart LR
   argo --> fe
   argo --> auth
   argo --> todo
+  argo --> platform
   rollouts[Argo Rollouts] --> todo
 ```
 
@@ -74,16 +82,19 @@ flowchart LR
 services/
   auth-service/
   todo-service/
+  platform-status-service/
   frontend/
 gitops/
   charts/
     auth-service/
     todo-service/
+    platform-status-service/
     frontend/
   argocd/
     argo-rollouts-app.yaml
     auth-app.yaml
     todo-app.yaml
+    platform-status-app.yaml
     frontend-app.yaml
 .github/workflows/
 docker-compose.yml
@@ -113,7 +124,17 @@ All todo routes require `Authorization: Bearer <JWT>`.
 
 - Local Compose: host `3000` to container `80`.
 - Kubernetes: Service `shipyard-frontend`; nginx proxies API routes to
-  `shipyard-auth-service` and `shipyard-todo-service`.
+  `shipyard-auth-service`, `shipyard-todo-service`, and
+  `shipyard-platform-status`.
+- Public case-study page: `/case-study`.
+
+### platform-status-service
+
+- `GET /health`
+- `GET /api/v1/platform/status`
+- Uses read-only Kubernetes RBAC and returns sanitized public evidence only.
+- Does not return secrets, kubeconfig, service account tokens, pod IPs, node
+  names, database connection strings, or Argo CD credentials.
 
 ## Local Development
 
@@ -235,6 +256,7 @@ Each service has a path-filtered GitHub Actions workflow:
 | `ci-auth.yml` | `services/auth-service/**`, auth chart |
 | `ci-todo.yml` | `services/todo-service/**`, todo chart |
 | `ci-frontend.yml` | `services/frontend/**`, frontend chart |
+| `ci-platform-status.yml` | `services/platform-status-service/**`, platform status chart |
 
 The workflow builds a Docker image, pushes it to GHCR, updates the matching Helm
 chart `image.tag`, and commits that GitOps change back to `main`.
@@ -248,11 +270,12 @@ resource requests and replica counts low, or scale the node pool up temporarily.
 
 ### Frontend API proxy does not reach the backend
 
-Check that the frontend chart `upstream.auth.host` and `upstream.todo.host`
-match the Kubernetes Service names:
+Check that the frontend chart `upstream.auth.host`, `upstream.todo.host`, and
+`upstream.platform.host` match the Kubernetes Service names:
 
 - `shipyard-auth-service`
 - `shipyard-todo-service`
+- `shipyard-platform-status`
 
 ### ImagePullBackOff
 
@@ -261,6 +284,7 @@ Confirm the rendered images and tags:
 ```bash
 kubectl -n shipyard get deploy shipyard-auth-service -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
 kubectl -n shipyard get rollout shipyard-todo-service -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
+kubectl -n shipyard get deploy shipyard-platform-status -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
 kubectl -n shipyard get deploy shipyard-frontend -o jsonpath="{.spec.template.spec.containers[0].image}{'\n'}"
 ```
 
@@ -269,6 +293,7 @@ kubectl -n shipyard get deploy shipyard-frontend -o jsonpath="{.spec.template.sp
 ```bash
 kubectl -n argocd annotate application shipyard-auth-service argocd.argoproj.io/refresh=hard --overwrite
 kubectl -n argocd annotate application shipyard-todo-service argocd.argoproj.io/refresh=hard --overwrite
+kubectl -n argocd annotate application shipyard-platform-status argocd.argoproj.io/refresh=hard --overwrite
 kubectl -n argocd annotate application shipyard-frontend argocd.argoproj.io/refresh=hard --overwrite
 ```
 
@@ -276,8 +301,9 @@ kubectl -n argocd annotate application shipyard-frontend argocd.argoproj.io/refr
 
 - Kubernetes namespace: `shipyard`
 - Argo CD app names: `shipyard-auth-service`, `shipyard-todo-service`,
-  `shipyard-frontend`
-- Images: `ghcr.io/skyshineth/shipyard-{auth-service,todo-service,frontend}:<tag>`
+  `shipyard-platform-status`, `shipyard-frontend`
+- Images:
+  `ghcr.io/skyshineth/shipyard-{auth-service,todo-service,platform-status-service,frontend}:<tag>`
 - GitOps branch: `main`
 
 See [CONTEXT.md](CONTEXT.md) for project context and

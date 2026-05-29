@@ -19,6 +19,8 @@ The first deployment hit `Insufficient cpu` on the small shared-CPU node. Instea
 of scaling out immediately, the demo was tuned to fit the portfolio workload:
 
 - Reduced app CPU requests for auth-service, todo-service, and frontend.
+- Kept platform-status-service lightweight with very small CPU and memory
+  requests.
 - Reduced `todo-service` to 1 replica for the always-on demo footprint.
 - Kept Argo Rollouts enabled so the canary flow can still be demonstrated.
 - Kept PostgreSQL in-cluster for a self-contained demo.
@@ -67,4 +69,3 @@ If `todo-service` is paused on an Argo Rollouts canary step, promote it:
 ```powershell
 kubectl argo rollouts promote shipyard-todo-service -n shipyard
 ```
-

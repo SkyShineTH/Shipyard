@@ -8,6 +8,7 @@ GitOps workflow.
 
 - Repository: <https://github.com/SkyShineTH/Shipyard>
 - Live demo: <https://shipyard.skyshine.online>
+- Public case study: <https://shipyard.skyshine.online/case-study>
 - Primary goal: show practical DevOps, Kubernetes, GitOps, and progressive
   delivery skills through a working full-stack app.
 - Public positioning: portfolio-grade engineering evidence, not a production
@@ -53,9 +54,20 @@ GitOps workflow.
 - React + Vite app.
 - Built into an nginx production image.
 - In Kubernetes, nginx serves static assets and proxies `/api/v1/register`,
-  `/api/v1/login`, and `/api/v1/todos` to the internal backend services.
+  `/api/v1/login`, `/api/v1/todos`, and `/api/v1/platform/status` to internal
+  services.
 - Supports optional origin TLS by mounting a Kubernetes TLS secret into nginx and
   exposing service port `443`.
+- Hosts the public `/case-study` route for portfolio evidence.
+
+### platform-status-service
+
+- Go/Gin service for the `/api/v1/platform/status` endpoint.
+- Uses an in-cluster Kubernetes ServiceAccount with read-only RBAC.
+- Reads only public-safe resource status from the `shipyard` and `argocd`
+  namespaces.
+- Sanitizes output so public visitors do not see secrets, tokens, pod IPs, node
+  names, kubeconfig, database connection strings, or Argo CD credentials.
 
 ## GitOps Flow
 
@@ -65,6 +77,8 @@ GitOps workflow.
 4. The workflow updates the matching Helm chart `image.tag`.
 5. Argo CD detects the Git change and syncs the Kubernetes app.
 6. Argo Rollouts manages the `todo-service` rollout strategy.
+7. The `/case-study` page reads a sanitized infrastructure snapshot from
+   `platform-status-service`.
 
 ## Live Demo Environment
 
@@ -85,6 +99,7 @@ The demo is intentionally tuned for cost control:
 - one frontend replica
 - one auth-service replica
 - one todo-service replica for the always-on demo state
+- one platform-status-service replica for the public read-only snapshot
 - reduced CPU requests for app pods
 - no high-availability control plane
 
@@ -97,6 +112,7 @@ kubectl -n argocd get applications.argoproj.io
 kubectl -n shipyard get pods,svc,pvc -o wide
 kubectl -n shipyard get rollout shipyard-todo-service
 curl -I https://shipyard.skyshine.online/
+curl -s https://shipyard.skyshine.online/api/v1/platform/status
 ```
 
 Do not publish output that contains API tokens, database passwords, JWT secrets,
@@ -107,12 +123,15 @@ kubeconfig content, Cloudflare private keys, or GitHub PATs.
 - Built `todo-service` with Go, Gin, GORM, PostgreSQL, Docker, and Compose.
 - Built `auth-service` with JWT authentication and bcrypt password hashing.
 - Added Helm charts for auth, todo, and frontend.
+- Added `platform-status-service` for a sanitized public Kubernetes/GitOps
+  snapshot.
 - Added Argo CD Application manifests.
 - Added GitHub Actions workflows for image build, GHCR push, and chart tag bump.
 - Added React/Vite frontend and nginx production serving.
 - Added Argo Rollouts for `todo-service`.
 - Deployed the full stack to DOKS.
 - Added Cloudflare-backed HTTPS for `shipyard.skyshine.online`.
+- Added `/case-study` as a public evidence-based portfolio page.
 - Captured portfolio evidence in `docs/doks-live-demo.md` and
   `docs/screenshots/`.
 
