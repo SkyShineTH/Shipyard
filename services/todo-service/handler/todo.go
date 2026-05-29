@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -88,7 +89,7 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 
 	var todo model.Todo
 	if err := h.DB.Where("id = ? AND user_id = ?", id, uid).First(&todo).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "todo not found"})
 			return
 		}
