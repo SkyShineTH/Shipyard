@@ -21,10 +21,16 @@ Kubernetes, Helm, Argo CD, Argo Rollouts, GitHub Actions, GHCR.
 
 ## Live Demo
 
-> The cluster has been torn down to control cost. Evidence of the running
-> environment — command output, screenshots, and a full walkthrough — is in
-> [`docs/doks-live-demo.md`](docs/doks-live-demo.md). To spin it back up, see
-> [Kubernetes Deployment](#kubernetes-deployment) below.
+- Demo: <https://shipyard.skyshine.online/>
+- Case study: <https://shipyard.skyshine.online/case-study>
+- Dashboard: <https://shipyard.skyshine.online/dashboard>
+
+> The live demo runs as a cost-conscious DOKS environment. The core application
+> is kept online for portfolio review, while the private Prometheus/Grafana
+> monitoring stack is deployed only on demand for screenshots and interviews.
+> Evidence of the running environment, including command output, screenshots,
+> and a full walkthrough, is in
+> [`docs/doks-live-demo.md`](docs/doks-live-demo.md).
 
 ![Shipyard — ArgoCD Applications, kubectl output, and the /case-study page from the live DOKS cluster](docs/screenshots/shipyard-live-demo.png)
 
