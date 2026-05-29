@@ -69,10 +69,12 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
   strategy:
     canary:
-      # Without a service mesh / ingress router, weights are approximated via replica counts.
-      # Use replicaCount >= 5 so 20% maps to at least one canary pod.
+      # Weight-based canary requires enough replicas for the percentage to resolve to at least
+      # one pod (e.g. replicaCount >= 5 for 20%). The portfolio default is replicaCount=1, so
+      # the canary step is used here to demonstrate the promotion workflow, not weighted traffic
+      # splitting. Scale replicaCount to 5+ in a real environment to get actual traffic weights.
       steps:
         - setWeight: 20
-        - pause: {}
+        - pause: {duration: 5m}
         - setWeight: 50
         - setWeight: 100
