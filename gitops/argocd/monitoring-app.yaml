@@ -67,6 +67,10 @@ spec:
               memory: 64Mi
 
         prometheusOperator:
+          admissionWebhooks:
+            enabled: false
+            patch:
+              enabled: false
           resources:
             requests:
               cpu: 25m
@@ -89,15 +93,15 @@ spec:
               matchLabels:
                 shipyard.skyshine.online/monitoring: "true"
             serviceMonitorNamespaceSelector:
-              matchNames:
-                - shipyard
+              matchLabels:
+                kubernetes.io/metadata.name: shipyard
             podMonitorSelectorNilUsesHelmValues: false
             podMonitorSelector:
               matchLabels:
                 shipyard.skyshine.online/monitoring: "true"
             podMonitorNamespaceSelector:
-              matchNames:
-                - monitoring
+              matchLabels:
+                kubernetes.io/metadata.name: monitoring
             ruleSelectorNilUsesHelmValues: false
             ruleSelector: {}
             resources:
