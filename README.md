@@ -1,11 +1,18 @@
 # Shipyard
 
-A full-stack GitOps portfolio project: React + Vite frontend, Go microservices,
-PostgreSQL, Docker, Kubernetes, Helm, Argo CD, Argo Rollouts, GitHub Actions,
-and GHCR.
+Shipyard is a full-stack GitOps portfolio project built to demonstrate a
+complete delivery chain — from source code to a running Kubernetes cluster —
+using the tooling that shows up in real Platform and Backend Engineer roles.
 
-`todo-service` is deployed with Argo Rollouts so the project can demonstrate a
-canary-style promotion workflow in Kubernetes.
+The focus is on the delivery layer: GitOps with Argo CD, progressive delivery
+with Argo Rollouts, path-filtered CI that commits Helm image tag bumps back to
+Git, and a custom `platform-status-service` that reads its own cluster state
+through scoped RBAC and surfaces a sanitized public snapshot. The application
+itself (auth + todo CRUD in Go, React frontend) is intentionally simple so the
+infrastructure and delivery story stays in the foreground.
+
+**Stack:** React + Vite frontend, Go microservices, PostgreSQL, Docker,
+Kubernetes, Helm, Argo CD, Argo Rollouts, GitHub Actions, GHCR.
 
 [![CI todo-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-todo.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-todo.yml)
 [![CI auth-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-auth.yml)
@@ -14,17 +21,23 @@ canary-style promotion workflow in Kubernetes.
 
 ## Live Demo
 
-- Demo: <https://shipyard.skyshine.online>
-- Case study: <https://shipyard.skyshine.online/case-study>
-- Runtime: DigitalOcean Kubernetes, Argo CD, Argo Rollouts, Helm, PostgreSQL,
-  and a DigitalOcean Load Balancer.
-- TLS: Cloudflare proxy with origin HTTPS enabled through a Kubernetes TLS
-  secret.
-- Cost model: small on-demand portfolio environment. See
-  [docs/cost-control.md](docs/cost-control.md).
-- Monitoring: private Prometheus/Grafana stack for on-demand evidence. See
-  [docs/monitoring.md](docs/monitoring.md).
-- Evidence case study: [docs/doks-live-demo.md](docs/doks-live-demo.md).
+> The cluster has been torn down to control cost. Evidence of the running
+> environment — command output, screenshots, and a full walkthrough — is in
+> [`docs/doks-live-demo.md`](docs/doks-live-demo.md). To spin it back up, see
+> [Kubernetes Deployment](#kubernetes-deployment) below.
+
+![Shipyard — ArgoCD Applications, kubectl output, and the /case-study page from the live DOKS cluster](docs/screenshots/shipyard-live-demo.png)
+
+**What ran in production:**
+
+- Runtime: DigitalOcean Kubernetes (Singapore), Argo CD, Argo Rollouts, Helm,
+  PostgreSQL with a DigitalOcean Block Storage PVC, and a Load Balancer.
+- TLS: Cloudflare proxy → DigitalOcean Load Balancer → nginx origin HTTPS via a
+  Cloudflare Origin Certificate mounted as a Kubernetes TLS secret.
+- Cost model: one shared-CPU worker node, one replica per service — intentionally
+  minimal. See [docs/cost-control.md](docs/cost-control.md).
+- Monitoring: private Prometheus/Grafana stack deployed on demand for evidence.
+  See [docs/monitoring.md](docs/monitoring.md).
 
 ## Architecture
 
