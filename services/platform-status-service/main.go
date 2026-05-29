@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -25,10 +26,12 @@ func main() {
 	}); err != nil {
 		log.Fatalf("set trusted proxies: %v", err)
 	}
+	router.Use(metricsMiddleware())
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	client, err := NewInClusterClient()
 	if err != nil {

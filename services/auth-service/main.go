@@ -9,6 +9,7 @@ import (
 	"github.com/SkyShineTH/shipyard/auth-service/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -32,11 +33,13 @@ func main() {
 	}); err != nil {
 		log.Fatalf("set trusted proxies: %v", err)
 	}
+	router.Use(metricsMiddleware())
 	authHandler := handler.NewAuthHandler(database)
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	api := router.Group("/api/v1")
 	{
