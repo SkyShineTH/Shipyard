@@ -1,0 +1,117 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shipyard-monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://prometheus-community.github.io/helm-charts'
+    chart: kube-prometheus-stack
+    targetRevision: 86.0.1
+    helm:
+      releaseName: shipyard-monitoring
+      values: |
+        defaultRules:
+          create: false
+
+        alertmanager:
+          enabled: false
+
+        kubeControllerManager:
+          enabled: false
+        kubeEtcd:
+          enabled: false
+        kubeScheduler:
+          enabled: false
+        kubeProxy:
+          enabled: false
+
+        grafana:
+          enabled: true
+          defaultDashboardsEnabled: true
+          service:
+            type: ClusterIP
+          persistence:
+            enabled: false
+          sidecar:
+            dashboards:
+              enabled: true
+              searchNamespace: ALL
+          resources:
+            requests:
+              cpu: 25m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+        kube-state-metrics:
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+
+        prometheus-node-exporter:
+          resources:
+            requests:
+              cpu: 5m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+
+        prometheusOperator:
+          resources:
+            requests:
+              cpu: 25m
+              memory: 96Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+        prometheus:
+          service:
+            type: ClusterIP
+          prometheusSpec:
+            replicas: 1
+            retention: 6h
+            retentionSize: 1GB
+            scrapeInterval: 30s
+            evaluationInterval: 30s
+            serviceMonitorSelectorNilUsesHelmValues: false
+            serviceMonitorSelector:
+              matchLabels:
+                shipyard.skyshine.online/monitoring: "true"
+            serviceMonitorNamespaceSelector:
+              matchNames:
+                - shipyard
+            podMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelector:
+              matchLabels:
+                shipyard.skyshine.online/monitoring: "true"
+            podMonitorNamespaceSelector:
+              matchNames:
+                - monitoring
+            ruleSelectorNilUsesHelmValues: false
+            ruleSelector: {}
+            resources:
+              requests:
+                cpu: 50m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 768Mi
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
