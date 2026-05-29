@@ -40,6 +40,11 @@ const decisions = [
     title: 'Public-safe evidence',
     body: 'The live snapshot is read-only and intentionally strips secrets, tokens, pod IPs, node names, and database details.',
   },
+  {
+    icon: 'query_stats',
+    title: 'On-demand observability',
+    body: 'Prometheus and Grafana are wired for demo evidence through private ClusterIP services and port-forward access.',
+  },
 ]
 
 const evidenceItems = [
@@ -48,6 +53,7 @@ const evidenceItems = [
   'Argo Rollouts managing todo-service',
   'Kubernetes Secrets used for database and JWT credentials',
   'Cloudflare Full Strict TLS with an origin certificate',
+  'Prometheus ServiceMonitors and a Grafana dashboard for service metrics',
 ]
 
 function MaterialIcon({ name, className = '' }) {
