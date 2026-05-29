@@ -11,6 +11,12 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	dbMaxOpenConns    = 10
+	dbMaxIdleConns    = 5
+	dbConnMaxLifetime = 30 * time.Minute
+)
+
 // migrateTodoUserID handles existing rows before AutoMigrate adds NOT NULL user_id.
 // Old todos get user_id = 0 (orphaned; JWT users start at 1).
 func migrateTodoUserID(db *gorm.DB) error {
@@ -78,6 +84,14 @@ func Connect() (*gorm.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("connect database: %w", err)
 	}
+
+	sqlDB, err := database.DB()
+	if err != nil {
+		return nil, fmt.Errorf("get underlying sql.DB: %w", err)
+	}
+	sqlDB.SetMaxOpenConns(dbMaxOpenConns)
+	sqlDB.SetMaxIdleConns(dbMaxIdleConns)
+	sqlDB.SetConnMaxLifetime(dbConnMaxLifetime)
 
 	if err := migrateTodoUserID(database); err != nil {
 		return nil, fmt.Errorf("migrate user_id: %w", err)

@@ -15,6 +15,9 @@ import (
 func main() {
 	_ = godotenv.Load()
 
+	if os.Getenv("JWT_SECRET") == "" {
+		log.Fatal("JWT_SECRET must be set before starting auth-service")
+	}
 	if os.Getenv("PORT") == "" {
 		os.Setenv("PORT", "8081")
 	}

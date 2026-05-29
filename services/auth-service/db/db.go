@@ -11,6 +11,12 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	dbMaxOpenConns    = 10
+	dbMaxIdleConns    = 5
+	dbConnMaxLifetime = 30 * time.Minute
+)
+
 func Connect() (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
@@ -38,6 +44,14 @@ func Connect() (*gorm.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("connect database: %w", err)
 	}
+
+	sqlDB, err := database.DB()
+	if err != nil {
+		return nil, fmt.Errorf("get underlying sql.DB: %w", err)
+	}
+	sqlDB.SetMaxOpenConns(dbMaxOpenConns)
+	sqlDB.SetMaxIdleConns(dbMaxIdleConns)
+	sqlDB.SetConnMaxLifetime(dbConnMaxLifetime)
 
 	if err := database.AutoMigrate(&model.User{}); err != nil {
 		return nil, fmt.Errorf("run automigrate: %w", err)
