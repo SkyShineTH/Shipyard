@@ -22,11 +22,25 @@ required for the public app to run.
 Push the service changes first so GitHub Actions can build images that include
 the `/metrics` endpoints.
 
+Register the public Prometheus Community Helm repository in Argo CD:
+
+```powershell
+kubectl apply -f gitops/argocd/prometheus-community-repo.yaml
+```
+
+On the one-node demo cluster, the full Prometheus/Grafana stack can exceed the
+available CPU and memory. For screenshots, temporarily scale the node pool to 2
+nodes, then scale it back down after teardown:
+
+```powershell
+doctl kubernetes cluster node-pool update shipyard-doks-demo demo-pool --count 2 --min-nodes 1 --max-nodes 2 --auto-scale
+```
+
 Then install the monitoring stack:
 
 ```powershell
 kubectl apply -f gitops/argocd/monitoring-app.yaml
-kubectl -n argocd wait --for=jsonpath='{.status.health.status}'=Healthy application/shipyard-monitoring --timeout=900s
+kubectl -n argocd wait --for=jsonpath="{.status.health.status}"=Healthy application/shipyard-monitoring --timeout=900s
 ```
 
 After the Prometheus Operator CRDs are available, install the Shipyard-specific
@@ -34,7 +48,7 @@ ServiceMonitors and dashboard:
 
 ```powershell
 kubectl apply -f gitops/argocd/shipyard-observability-app.yaml
-kubectl -n argocd wait --for=jsonpath='{.status.health.status}'=Healthy application/shipyard-observability --timeout=300s
+kubectl -n argocd wait --for=jsonpath="{.status.health.status}"=Healthy application/shipyard-observability --timeout=300s
 ```
 
 ## Verify
@@ -93,6 +107,7 @@ Applications.
 ```powershell
 kubectl -n argocd delete application shipyard-observability
 kubectl -n argocd delete application shipyard-monitoring
+doctl kubernetes cluster node-pool update shipyard-doks-demo demo-pool --count 1 --min-nodes 1 --max-nodes 1 --auto-scale
 ```
 
 This keeps the live demo cost-conscious and avoids leaving Prometheus/Grafana
