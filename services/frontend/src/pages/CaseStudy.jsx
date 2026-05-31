@@ -2,22 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getPlatformStatus } from '../api/client'
 import { useScrollReveal } from '../hooks/useScrollReveal'
-
-const architectureFlow = [
-  'Cloudflare HTTPS',
-  'DigitalOcean Load Balancer',
-  'frontend nginx',
-  'auth-service / todo-service',
-  'PostgreSQL',
-]
-
-const deliveryFlow = [
-  'GitHub Actions',
-  'GHCR images',
-  'Helm values',
-  'Argo CD sync',
-  'DOKS workloads',
-]
+import ArchitectureDiagram from '../components/ArchitectureDiagram'
 
 const decisions = [
   {
@@ -92,21 +77,6 @@ function statusClass(value) {
 function StatusBadge({ value }) {
   const label = value || 'Unknown'
   return <span className={`status-badge ${statusClass(label)}`}>{label}</span>
-}
-
-function FlowDiagram({ title, items }) {
-  return (
-    <article className="card card--panel case-flow">
-      <h3>{title}</h3>
-      <ol>
-        {items.map((item) => (
-          <li key={item}>
-            <span>{item}</span>
-          </li>
-        ))}
-      </ol>
-    </article>
-  )
 }
 
 function SnapshotTable({ title, emptyText, children }) {
@@ -194,9 +164,8 @@ export default function CaseStudy() {
           <p className="page-eyebrow">Architecture</p>
           <h2 id="architecture-heading">Request flow and delivery flow</h2>
         </div>
-        <div className="case-flow-grid" data-reveal>
-          <FlowDiagram title="Runtime" items={architectureFlow} />
-          <FlowDiagram title="Deployment" items={deliveryFlow} />
+        <div className="card card--panel arch-card" data-reveal>
+          <ArchitectureDiagram />
         </div>
       </section>
 
