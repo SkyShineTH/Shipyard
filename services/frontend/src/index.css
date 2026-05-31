@@ -786,18 +786,12 @@ input:focus-visible {
   line-height: 1.2;
 }
 
-.case-flow-grid,
 .case-decision-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
 
-.case-flow {
-  padding: 1.25rem;
-}
-
-.case-flow h3,
 .case-snapshot__group h3,
 .case-decision h3 {
   margin: 0;
@@ -806,31 +800,183 @@ input:focus-visible {
   font-weight: 700;
 }
 
-.case-flow ol {
-  display: grid;
-  gap: 0.7rem;
-  margin: 1rem 0 0;
-  padding: 0;
-  list-style: none;
+/* Interactive architecture diagram */
+.arch-card {
+  padding: 1.5rem;
 }
 
-.case-flow li {
-  position: relative;
+.arch-diagram {
+  margin: 0;
+}
+
+.arch-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Per-group accent colors, theme-aware via the shared accent for neutrals. */
+  --c-edge: var(--accent);
+  --c-frontend: var(--accent);
+  --c-client: #5b8def;
+  --c-service: #2e9e6b;
+  --c-data: #c98a2b;
+  --c-source: var(--text-muted);
+  --c-observ: #a874d8;
+  --c-ci: #d8743a;
+}
+
+.arch-divider {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 4 6;
+}
+
+.arch-band-label {
+  fill: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Microservices container */
+.arch-box__rect {
+  fill: color-mix(in srgb, var(--c-service) 6%, transparent);
+  stroke: color-mix(in srgb, var(--c-service) 35%, var(--border));
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+  cursor: pointer;
+  outline: none;
+}
+
+.arch-box__rect:focus-visible {
+  stroke-dasharray: none;
+  stroke: var(--c-service);
+}
+
+.arch-box__label {
+  fill: var(--c-service);
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* Edges */
+.arch-edge {
+  stroke: var(--border);
+  stroke-width: 1.6;
+  fill: none;
+  color: var(--border);
+  transition: stroke 0.2s ease, opacity 0.2s ease, stroke-width 0.2s ease;
+}
+
+.arch-edge--read,
+.arch-edge--sync {
+  stroke-dasharray: 5 4;
+}
+
+.arch-edge.is-active {
+  stroke: var(--accent);
+  color: var(--accent);
+  stroke-width: 2.4;
+}
+
+.arch-edge.is-dim {
+  opacity: 0.18;
+}
+
+/* Nodes */
+.arch-node {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.arch-node__rect {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1.4;
+  transition: stroke 0.2s ease, filter 0.2s ease;
+}
+
+.arch-node__stripe {
+  fill: var(--node-color, var(--accent));
+}
+
+.arch-node--client { --node-color: var(--c-client); }
+.arch-node--edge { --node-color: var(--c-edge); }
+.arch-node--frontend { --node-color: var(--c-frontend); }
+.arch-node--service { --node-color: var(--c-service); }
+.arch-node--data { --node-color: var(--c-data); }
+.arch-node--source { --node-color: var(--c-source); }
+.arch-node--observ { --node-color: var(--c-observ); }
+.arch-node--ci { --node-color: var(--c-ci); }
+
+.arch-node__label {
+  fill: var(--text-heading);
+  font-size: 13px;
+  font-weight: 600;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.arch-node__sub {
+  fill: var(--text-muted);
+  font-size: 10.5px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.arch-node.is-active .arch-node__rect,
+.arch-node:focus-visible .arch-node__rect {
+  stroke: var(--node-color, var(--accent));
+  stroke-width: 2;
+  filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--node-color, var(--accent)) 30%, transparent));
+}
+
+.arch-node.is-dim {
+  opacity: 0.32;
+}
+
+.arch-box.is-dim {
+  opacity: 0.32;
+}
+
+/* Legend + hint */
+.arch-legend {
   display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  min-height: 2.2rem;
-  color: var(--text);
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 1.1rem;
 }
 
-.case-flow li::before {
+.arch-legend__item {
+  position: relative;
+  padding-left: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.arch-legend__item::before {
   content: '';
-  width: 0.62rem;
-  height: 0.62rem;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--accent);
-  box-shadow: 0 0 0 0.28rem color-mix(in srgb, var(--accent) 15%, transparent);
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0.6rem;
+  height: 0.6rem;
+  transform: translateY(-50%);
+  border-radius: 3px;
+}
+
+.arch-legend__item--edge::before { background: var(--accent); }
+.arch-legend__item--service::before { background: #2e9e6b; }
+.arch-legend__item--data::before { background: #c98a2b; }
+.arch-legend__item--source::before { background: var(--text-muted); }
+.arch-legend__item--observ::before { background: #a874d8; }
+.arch-legend__item--ci::before { background: #d8743a; }
+
+.arch-hint {
+  margin: 0.6rem 0 0;
+  font-size: 0.8rem;
 }
 
 .case-snapshot {
@@ -999,7 +1145,6 @@ input:focus-visible {
   }
 
   .case-summary,
-  .case-flow-grid,
   .case-decision-grid,
   .case-snapshot__grid,
   .case-evidence {
