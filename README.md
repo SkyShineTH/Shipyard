@@ -65,31 +65,66 @@ Kubernetes, Helm, Argo CD, Argo Rollouts, GitHub Actions, GHCR.
 - `.github/workflows/*`: CI workflows that build images, push to GHCR, and bump
   Helm chart image tags.
 
+The diagram below has two flows: the **runtime request path** (how a user
+request reaches the services and data) and the **GitOps delivery path** (how a
+git push becomes a running workload). Dotted arrows are read-only or scrape
+traffic; thick arrows are GitOps sync.
+
 ```mermaid
 flowchart LR
-  user[User] --> cf[Cloudflare HTTPS]
-  cf --> lb[DigitalOcean Load Balancer]
-  lb --> fe[frontend nginx]
-  fe --> auth[auth-service]
-  fe --> todo[todo-service Rollout]
-  fe --> platform[platform-status-service]
-  platform --> kube[Kubernetes API read-only]
-  platform --> apps[Argo CD Applications read-only]
-  prometheus[Prometheus private] --> auth
-  prometheus --> todo
-  prometheus --> platform
-  grafana[Grafana private] --> prometheus
-  auth --> db[(PostgreSQL)]
-  todo --> db
+  user(["User<br/>web / mobile"])
 
-  ci[GitHub Actions] --> ghcr[GHCR]
-  ci --> values[Helm image tag update]
-  values --> argo[Argo CD]
-  argo --> fe
-  argo --> auth
-  argo --> todo
-  argo --> platform
-  rollouts[Argo Rollouts] --> todo
+  subgraph edge["Edge"]
+    cf["Cloudflare<br/>Full-Strict TLS"]
+    lb["DigitalOcean<br/>Load Balancer"]
+  end
+
+  subgraph doks["DigitalOcean Kubernetes (DOKS)"]
+    fe["frontend (nginx)<br/>proxies /api/v1/*"]
+    subgraph svc["Microservices · Go/Gin"]
+      auth["auth-service<br/>JWT"]
+      todo["todo-service<br/>Argo Rollout"]
+      platform["platform-status-service<br/>read-only snapshot"]
+    end
+    db[("PostgreSQL")]
+  end
+
+  subgraph sources["Read-only sources"]
+    kube["Kubernetes API"]
+    apps["Argo CD Applications"]
+  end
+
+  subgraph obs["Observability (private)"]
+    prometheus["Prometheus"]
+    grafana["Grafana"]
+  end
+
+  subgraph cd["GitOps delivery"]
+    ci["GitHub Actions"]
+    ghcr["GHCR images"]
+    values["Helm image tag"]
+    argo["Argo CD"]
+    rollouts["Argo Rollouts"]
+  end
+
+  %% Runtime request path
+  user --> cf --> lb --> fe
+  fe --> auth & todo & platform
+  auth --> db
+  todo --> db
+  platform -. read-only .-> kube
+  platform -. read-only .-> apps
+
+  %% Observability (private scrape)
+  prometheus -. scrapes .-> svc
+  grafana --> prometheus
+
+  %% GitOps delivery path
+  ci --> ghcr
+  ci --> values --> argo
+  argo ==>|sync| svc
+  argo ==>|sync| fe
+  rollouts ==>|progressive| todo
 ```
 
 ## Stack
