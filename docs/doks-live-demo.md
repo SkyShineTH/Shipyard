@@ -86,7 +86,8 @@ persistentvolumeclaim/data-postgres-0      Bound            2Gi
 
 ## Screenshots
 
-- [Live demo screenshot](./screenshots/shipyard-live-demo.png)
+- [Case study page](./screenshots/shipyard-live-demo-case-study.webp) — architecture, request flow, and read-only kubectl evidence.
+- [Landing page](./screenshots/shipyard-live-demo.png) — the public entry point.
 
 Additional useful screenshots for portfolio proof:
 

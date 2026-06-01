@@ -32,7 +32,7 @@ Kubernetes, Helm, Argo CD, Argo Rollouts, GitHub Actions, GHCR.
 > and a full walkthrough, is in
 > [`docs/doks-live-demo.md`](docs/doks-live-demo.md).
 
-![Shipyard — ArgoCD Applications, kubectl output, and the /case-study page from the live DOKS cluster](docs/screenshots/shipyard-live-demo.png)
+![Shipyard /case-study page from the live DOKS cluster — architecture and request flow, plus read-only kubectl evidence of running pods, services, and storage](docs/screenshots/shipyard-live-demo-case-study.webp)
 
 **What ran in production:**
 
