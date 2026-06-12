@@ -7,8 +7,8 @@ application moves from source code to a working Kubernetes environment through a
 GitOps workflow.
 
 - Repository: <https://github.com/SkyShineTH/Shipyard>
-- Live demo: <https://shipyard.skyshine.online>
-- Public case study: <https://shipyard.skyshine.online/case-study>
+- Live demo (decommissioned 2026-06-12): `https://shipyard.skyshine.online`
+- Public case study (decommissioned): `https://shipyard.skyshine.online/case-study`
 - Primary goal: show practical DevOps, Kubernetes, GitOps, and progressive
   delivery skills through a working full-stack app.
 - Public positioning: portfolio-grade engineering evidence, not a production
@@ -23,7 +23,7 @@ GitOps workflow.
 | Database | PostgreSQL |
 | Containerization | Docker |
 | Local runtime | Docker Compose, kind |
-| Kubernetes runtime | DigitalOcean Kubernetes for the live demo |
+| Kubernetes runtime | DigitalOcean Kubernetes (live demo, decommissioned) |
 | Packaging | Helm |
 | GitOps | Argo CD |
 | Progressive delivery | Argo Rollouts |
@@ -91,10 +91,13 @@ GitOps workflow.
 8. Optional monitoring scrapes `/metrics` endpoints for demo screenshots and
    interview evidence.
 
-## Live Demo Environment
+## Live Demo Environment (decommissioned)
 
-The current demo runs on DigitalOcean Kubernetes as an on-demand portfolio
-environment.
+The demo ran on DigitalOcean Kubernetes as an on-demand portfolio environment.
+It was decommissioned on 2026-06-12 — the `shipyard-doks-demo` cluster, its
+DigitalOcean Load Balancer, and the PostgreSQL Block Storage volume were torn
+down to control cost. The configuration below documents the environment that ran
+and serves as the blueprint for redeploying it from Git.
 
 - Cluster name: `shipyard-doks-demo`
 - Region: Singapore
@@ -104,7 +107,7 @@ environment.
 - Database: PostgreSQL in the `shipyard` namespace with a small Block Storage PVC
 - Entry point: `shipyard-frontend` Service of type `LoadBalancer`
 
-The demo is intentionally tuned for cost control:
+The demo was intentionally tuned for cost control:
 
 - small node footprint
 - one frontend replica
@@ -117,7 +120,10 @@ The demo is intentionally tuned for cost control:
 
 ## Evidence Commands
 
-Useful commands for portfolio proof:
+Commands that were used to capture portfolio proof while the demo was live. The
+`kubectl` commands apply to any redeployed cluster; the `curl` commands targeted
+`shipyard.skyshine.online`, which is offline since the environment was
+decommissioned.
 
 ```bash
 kubectl -n argocd get applications.argoproj.io
@@ -151,6 +157,8 @@ kubeconfig content, Cloudflare private keys, or GitHub PATs.
 - Added `/case-study` as a public evidence-based portfolio page.
 - Captured portfolio evidence in `docs/doks-live-demo.md` and
   `docs/screenshots/`.
+- Decommissioned the live DOKS environment on 2026-06-12 to control cost; the
+  stack remains fully defined in Git for redeployment.
 
 ## Operational Notes
 

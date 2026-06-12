@@ -4,9 +4,15 @@ Shipyard is designed as a portfolio live demo, not an always-on production
 system. The goal is to show a real Kubernetes/GitOps workflow while keeping the
 DigitalOcean bill predictable.
 
+> **Current state — decommissioned 2026-06-12.** The live DOKS environment is
+> fully torn down: the `shipyard-doks-demo` cluster, its Load Balancer, and the
+> PostgreSQL Block Storage volume have all been deleted, and nothing is billing.
+> This document describes the cost profile of the environment while it ran and is
+> the runbook for scaling it down — or bringing it back — on the next deploy.
+
 ## Active Resources
 
-The live DOKS demo currently uses:
+While running, the live DOKS demo used:
 
 - 1 DOKS worker node in the `demo-pool` node pool.
 - 1 DigitalOcean Load Balancer for the frontend.

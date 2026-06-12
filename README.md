@@ -19,18 +19,21 @@ Kubernetes, Helm, Argo CD, Argo Rollouts, GitHub Actions, GHCR.
 [![CI frontend](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-frontend.yml)
 [![CI platform-status-service](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-platform-status.yml/badge.svg?branch=main)](https://github.com/SkyShineTH/Shipyard/actions/workflows/ci-platform-status.yml)
 
-## Live Demo
+## Live Demo (decommissioned)
 
-- Demo: <https://shipyard.skyshine.online/>
-- Case study: <https://shipyard.skyshine.online/case-study>
-- Dashboard: <https://shipyard.skyshine.online/dashboard>
+> **Status:** The live DOKS environment was decommissioned on 2026-06-12 to
+> control cloud cost. The cluster, its DigitalOcean Load Balancer, and the
+> PostgreSQL storage volume have been torn down, so the public URLs below no
+> longer resolve. The command output, screenshots, and full walkthrough in
+> [`docs/doks-live-demo.md`](docs/doks-live-demo.md) remain as evidence of the
+> environment that ran, and the whole stack is defined in Git so it can be
+> redeployed from the Helm charts and Argo CD manifests in this repository.
 
-> The live demo runs as a cost-conscious DOKS environment. The core application
-> is kept online for portfolio review, while the private Prometheus/Grafana
-> monitoring stack is deployed only on demand for screenshots and interviews.
-> Evidence of the running environment, including command output, screenshots,
-> and a full walkthrough, is in
-> [`docs/doks-live-demo.md`](docs/doks-live-demo.md).
+Former public URLs (no longer live):
+
+- Demo: `https://shipyard.skyshine.online/`
+- Case study: `https://shipyard.skyshine.online/case-study`
+- Dashboard: `https://shipyard.skyshine.online/dashboard`
 
 ![Shipyard /case-study page from the live DOKS cluster — architecture and request flow, plus read-only kubectl evidence of running pods, services, and storage](docs/screenshots/shipyard-live-demo-case-study.webp)
 
@@ -136,7 +139,7 @@ flowchart LR
 | Database | PostgreSQL |
 | Images | Docker multi-stage builds |
 | Local runtime | Docker Compose, kind |
-| Kubernetes | DigitalOcean Kubernetes for live demo |
+| Kubernetes | DigitalOcean Kubernetes (live demo, now decommissioned) |
 | GitOps | Helm, Argo CD, Argo Rollouts |
 | Registry | GHCR |
 
@@ -290,7 +293,7 @@ kubectl -n shipyard create secret generic todo-service-secret \
 
 ## Origin TLS
 
-The live demo uses Cloudflare in front of the DigitalOcean Load Balancer. The
+The live demo used Cloudflare in front of the DigitalOcean Load Balancer. The
 frontend chart supports origin TLS by mounting a Kubernetes TLS secret into the
 nginx container and exposing service port `443`.
 
@@ -342,7 +345,7 @@ chart `image.tag`, and commits that GitOps change back to `main`.
 
 ### Pods stuck in Pending with `Insufficient cpu`
 
-The live demo is intentionally cost-conscious. On a small one-node cluster, keep
+The live demo was intentionally cost-conscious. On a small one-node cluster, keep
 resource requests and replica counts low, or scale the node pool up temporarily.
 
 ### Frontend API proxy does not reach the backend
