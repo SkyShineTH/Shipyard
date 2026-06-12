@@ -1,13 +1,20 @@
 # Shipyard DOKS Live Demo
 
-Shipyard is deployed as an on-demand portfolio demo on DigitalOcean Kubernetes.
-The environment is intentionally small so it can show a real GitOps/Kubernetes
+> **Status — decommissioned 2026-06-12.** This live environment was deployed and
+> validated on DigitalOcean Kubernetes, then torn down to control cost. The
+> cluster, its Load Balancer, and the PostgreSQL storage volume no longer exist,
+> so the URLs below are offline. This document is preserved as a case study of
+> the environment that ran; the full stack is defined in Git and can be
+> redeployed from the Helm charts and Argo CD manifests in this repository.
+
+Shipyard was deployed as an on-demand portfolio demo on DigitalOcean Kubernetes.
+The environment was intentionally small so it could show a real GitOps/Kubernetes
 workflow while keeping cloud cost controlled.
 
 ## Live Demo
 
-- URL: <https://shipyard.skyshine.online/>
-- Case study: <https://shipyard.skyshine.online/case-study>
+- URL (offline): `https://shipyard.skyshine.online/`
+- Case study (offline): `https://shipyard.skyshine.online/case-study`
 - Repository: <https://github.com/SkyShineTH/Shipyard>
 - Cluster: DigitalOcean Kubernetes, Singapore region
 - Runtime: 1 shared-CPU worker node for demo use
