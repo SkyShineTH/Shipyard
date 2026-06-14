@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shipyard",
+  "compatibility_date": "2026-06-14",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "decommission-notice"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
